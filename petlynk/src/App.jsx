@@ -23,6 +23,10 @@ const api = {
   async emailExists(email) {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/usuarios?email=eq.${email}`, { headers:{ apikey:SUPABASE_KEY, Authorization:`Bearer ${SUPABASE_KEY}` } });
     const d = await res.json(); return d.length>0;
+  },
+  async patch(table, id, data) {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, { method:"PATCH", headers:{ apikey:SUPABASE_KEY, Authorization:`Bearer ${SUPABASE_KEY}`, "Content-Type":"application/json", Prefer:"return=representation" }, body:JSON.stringify(data) });
+    return res.json();
   }
 };
 
@@ -263,48 +267,180 @@ function MapaGeral({ animals, onClick }) {
 }
 
 // ── MODAL ─────────────────────────────────────────────────────────
-function Modal({ a, onClose }) {
+function Modal({ a, onClose, user, onUpdate, isDemo }) {
   const cfg = TC[a.tipo];
   const em = EM[a.especie]||"🐾";
+  const isOwner = user && user.nome === a.usuario_nome;
+  const [editMode, setEditMode] = useState(false);
+  const [form, setForm] = useState({ ...a });
+  const [novaFoto, setNovaFoto] = useState(null);
+  const [preview, setPreview] = useState(a.foto_url);
+  const [busy, setBusy] = useState(false);
+  const [confirmFound, setConfirmFound] = useState(false);
+  const fileRef = useRef();
+
+  const handleFoto = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setNovaFoto(file);
+    const r = new FileReader();
+    r.onload = ev => setPreview(ev.target.result);
+    r.readAsDataURL(file);
+  };
+
+  const handleSave = async () => {
+    setBusy(true);
+    try {
+      let foto_url = form.foto_url;
+      if (novaFoto) {
+        if (isDemo) { foto_url = preview; }
+        else { const ext=novaFoto.name.split(".").pop(); foto_url=await api.uploadFoto(novaFoto,`${Date.now()}.${ext}`); }
+      }
+      const updated = { ...form, foto_url };
+      if (!isDemo) { await api.patch("animais", a.id, updated); }
+      onUpdate(updated);
+      setEditMode(false);
+    } catch(e) { alert("Erro ao salvar: "+e.message); }
+    setBusy(false);
+  };
+
+  const handleFound = async () => {
+    setBusy(true);
+    try {
+      const updated = { ...a, resolvido:true };
+      if (!isDemo) { await api.patch("animais", a.id, { resolvido:true }); }
+      onUpdate(updated);
+      setConfirmFound(false);
+      onClose();
+    } catch(e) { alert("Erro: "+e.message); }
+    setBusy(false);
+  };
+
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:20,backdropFilter:"blur(4px)"}} onClick={onClose}>
       <div className="pop" style={{background:"#fff",borderRadius:26,maxWidth:550,width:"100%",maxHeight:"94vh",overflowY:"auto",boxShadow:"0 32px 100px rgba(0,0,0,.3)"}} onClick={e=>e.stopPropagation()}>
+
+        {/* FOTO HEADER */}
         <div style={{height:220,background:`linear-gradient(${cfg.grad})`,borderRadius:"26px 26px 0 0",display:"flex",alignItems:"center",justifyContent:"center",fontSize:86,position:"relative",overflow:"hidden"}}>
-          {a.foto_url ? <img src={a.foto_url} alt={a.nome} style={{width:"100%",height:"100%",objectFit:"cover",position:"absolute",inset:0,borderRadius:"26px 26px 0 0"}}/> : <span style={{filter:"drop-shadow(0 8px 16px rgba(0,0,0,.22))",position:"relative"}}>{em}</span>}
+          {preview ? <img src={preview} alt={form.nome} style={{width:"100%",height:"100%",objectFit:"cover",position:"absolute",inset:0,borderRadius:"26px 26px 0 0"}}/> : <span style={{filter:"drop-shadow(0 8px 16px rgba(0,0,0,.22))",position:"relative"}}>{em}</span>}
           <button onClick={onClose} style={{position:"absolute",top:14,right:14,background:"rgba(255,255,255,.9)",border:"none",borderRadius:"50%",width:36,height:36,fontSize:17,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
           <div style={{position:"absolute",top:14,left:14,background:"rgba(0,0,0,.32)",backdropFilter:"blur(8px)",color:"#fff",borderRadius:50,padding:"5px 14px",fontSize:12,fontFamily:"'Nunito'",fontWeight:800}}>{cfg.icon} {cfg.label.toUpperCase()}</div>
+          {a.resolvido&&<div style={{position:"absolute",inset:0,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,color:"#fff",fontFamily:"'Nunito'",fontWeight:800,letterSpacing:.5}}>✅ ENCONTRADO / RESOLVIDO</div>}
+          {editMode&&(
+            <button onClick={()=>fileRef.current.click()} style={{position:"absolute",bottom:14,left:"50%",transform:"translateX(-50%)",background:"rgba(255,255,255,.92)",border:"none",borderRadius:50,padding:"7px 18px",fontSize:12,fontFamily:"'Nunito'",fontWeight:700,cursor:"pointer"}}>
+              📸 Trocar foto
+            </button>
+          )}
+          <input ref={fileRef} type="file" accept="image/*" style={{display:"none"}} onChange={handleFoto}/>
         </div>
+
         <div style={{padding:26}}>
-          <h2 style={{fontSize:26,fontWeight:900,fontFamily:"'Nunito'",color:"#2d2d2d",letterSpacing:-.5,marginBottom:4}}>{a.nome}</h2>
-          <p style={{color:"#C5B8AE",fontFamily:"'Lato'",marginBottom:18,fontSize:13}}>Cadastrado por <strong style={{color:"#888"}}>{a.usuario_nome}</strong> · {(a.created_at||"").split("T")[0]}</p>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9,marginBottom:16}}>
-            {[{l:"Espécie",v:a.especie},{l:"Raça",v:a.raca},{l:"Cor",v:a.cor},{l:"Porte",v:a.porte},{l:"Sexo",v:a.sexo},{l:"Local",v:`${a.bairro?a.bairro+", ":""}${a.cidade}`}].map((item,i)=>(
-              <div key={i} style={{background:"#FAF6F2",borderRadius:11,padding:"11px 13px",border:"1px solid #F0E8E0"}}>
-                <div style={{fontSize:9,color:"#C5B8AE",fontFamily:"'Lato'",marginBottom:2,textTransform:"uppercase",letterSpacing:.8}}>{item.l}</div>
-                <div style={{fontSize:13,fontWeight:800,fontFamily:"'Nunito'",color:"#333"}}>{item.v||"—"}</div>
+
+          {/* BOTÕES DO DONO */}
+          {isOwner && !a.resolvido && (
+            <div style={{display:"flex",gap:10,marginBottom:20,flexWrap:"wrap"}}>
+              <button onClick={()=>setEditMode(!editMode)}
+                style={{flex:1,background:editMode?"#F7F3EE":"#2BAE9E",color:editMode?"#888":"#fff",border:`2px solid ${editMode?"#E8DDD4":"#2BAE9E"}`,borderRadius:50,padding:"10px 16px",fontFamily:"'Nunito'",fontWeight:800,fontSize:13,cursor:"pointer",transition:"all .2s"}}>
+                {editMode?"✕ Cancelar edição":"✏️ Editar cadastro"}
+              </button>
+              <button onClick={()=>setConfirmFound(true)}
+                style={{flex:1,background:"linear-gradient(135deg,#2BAE9E,#4DD0C4)",color:"#fff",border:"none",borderRadius:50,padding:"10px 16px",fontFamily:"'Nunito'",fontWeight:800,fontSize:13,cursor:"pointer",boxShadow:"0 4px 14px rgba(43,174,158,.3)"}}>
+                ✅ Animal encontrado!
+              </button>
+            </div>
+          )}
+          {isOwner && a.resolvido && (
+            <div style={{background:"#F0FFFD",border:"2px solid #B2EDE8",borderRadius:14,padding:"12px 16px",marginBottom:20,textAlign:"center",fontFamily:"'Nunito'",fontWeight:700,color:"#2BAE9E",fontSize:14}}>
+              ✅ Este cadastro foi marcado como resolvido!
+            </div>
+          )}
+
+          {/* CONFIRMAÇÃO ENCONTRADO */}
+          {confirmFound && (
+            <div style={{background:"#F0FFFD",border:"2px solid #2BAE9E",borderRadius:16,padding:18,marginBottom:20}}>
+              <p style={{fontFamily:"'Nunito'",fontWeight:700,color:"#2BAE9E",fontSize:15,marginBottom:12}}>🎉 Confirmar que o animal foi encontrado?</p>
+              <p style={{fontFamily:"'Lato'",color:"#888",fontSize:13,marginBottom:14}}>O cadastro será marcado como resolvido e ficará visível como "Encontrado" para outros usuários.</p>
+              <div style={{display:"flex",gap:10}}>
+                <button onClick={handleFound} disabled={busy}
+                  style={{flex:1,background:"#2BAE9E",color:"#fff",border:"none",borderRadius:12,padding:"11px",fontFamily:"'Nunito'",fontWeight:800,fontSize:14,cursor:"pointer"}}>
+                  {busy?"Salvando...":"✅ Sim, foi encontrado!"}
+                </button>
+                <button onClick={()=>setConfirmFound(false)}
+                  style={{flex:1,background:"#F7F3EE",color:"#888",border:"2px solid #E8DDD4",borderRadius:12,padding:"11px",fontFamily:"'Nunito'",fontWeight:700,fontSize:14,cursor:"pointer"}}>
+                  Cancelar
+                </button>
               </div>
-            ))}
-          </div>
-          <div style={{background:"#FAF6F2",borderRadius:13,padding:14,marginBottom:16,border:"1px solid #F0E8E0"}}>
-            <div style={{fontSize:9,color:"#C5B8AE",fontFamily:"'Lato'",marginBottom:5,textTransform:"uppercase",letterSpacing:.8}}>Descrição</div>
-            <p style={{fontFamily:"'Lato'",color:"#666",lineHeight:1.72,fontSize:14}}>{a.descricao}</p>
-          </div>
+            </div>
+          )}
 
-          {/* MAPA */}
-          <MapaModal lat={a.lat} lng={a.lng} nome={a.nome} tipo={a.tipo}/>
-
-          {/* CONTATO */}
-          <div style={{marginTop:18}}>
-            <a href={`https://wa.me/55${a.telefone?.replace(/\D/g,"")}`} target="_blank" rel="noreferrer"
-              style={{display:"flex",alignItems:"center",justifyContent:"center",gap:9,background:`linear-gradient(${cfg.grad})`,color:"#fff",borderRadius:14,padding:"15px",fontFamily:"'Nunito'",fontWeight:800,fontSize:15,textDecoration:"none",boxShadow:`0 5px 18px ${cfg.color}38`,transition:"all .2s"}}
-              onMouseEnter={e=>e.currentTarget.style.opacity=".88"} onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
-              📱 Entrar em contato via WhatsApp
-            </a>
-            <p style={{textAlign:"center",color:"#D0C4BC",fontSize:11,fontFamily:"'Lato'",marginTop:5}}>{a.telefone}</p>
-          </div>
-
-          {/* SHARE */}
-          <Share animal={a}/>
+          {/* MODO EDIÇÃO */}
+          {editMode ? (
+            <div style={{display:"flex",flexDirection:"column",gap:14}}>
+              <h3 style={{fontSize:17,fontWeight:900,fontFamily:"'Nunito'",color:"#2d2d2d",marginBottom:4}}>✏️ Editar cadastro</h3>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+                <div style={{gridColumn:"1/-1"}}>
+                  <label style={{fontSize:10,color:"#C5B8AE",fontFamily:"'Lato'",display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:.8,fontWeight:700}}>Nome</label>
+                  <input className="inp" value={form.nome} onChange={e=>setForm({...form,nome:e.target.value})}/>
+                </div>
+                {[
+                  {l:"Espécie",k:"especie",sel:["Cachorro","Gato","Pássaro","Coelho","Outro"]},
+                  {l:"Raça",k:"raca"},
+                  {l:"Cor",k:"cor"},
+                  {l:"Porte",k:"porte",sel:["Pequeno","Médio","Grande"]},
+                  {l:"Sexo",k:"sexo",sel:["Macho","Fêmea","Indefinido"]},
+                  {l:"Cidade",k:"cidade"},
+                  {l:"Bairro",k:"bairro"},
+                ].map(c=>(
+                  <div key={c.k}>
+                    <label style={{fontSize:10,color:"#C5B8AE",fontFamily:"'Lato'",display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:.8,fontWeight:700}}>{c.l}</label>
+                    {c.sel
+                      ? <select className="inp" value={form[c.k]} onChange={e=>setForm({...form,[c.k]:e.target.value})}>{c.sel.map(o=><option key={o}>{o}</option>)}</select>
+                      : <input className="inp" value={form[c.k]||""} onChange={e=>setForm({...form,[c.k]:e.target.value})}/>
+                    }
+                  </div>
+                ))}
+                <div style={{gridColumn:"1/-1"}}>
+                  <label style={{fontSize:10,color:"#C5B8AE",fontFamily:"'Lato'",display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:.8,fontWeight:700}}>Descrição</label>
+                  <textarea className="inp" rows={3} value={form.descricao} onChange={e=>setForm({...form,descricao:e.target.value})}/>
+                </div>
+                <div style={{gridColumn:"1/-1"}}>
+                  <label style={{fontSize:10,color:"#C5B8AE",fontFamily:"'Lato'",display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:.8,fontWeight:700}}>WhatsApp</label>
+                  <input className="inp" value={form.telefone||""} onChange={e=>setForm({...form,telefone:e.target.value})}/>
+                </div>
+              </div>
+              <button onClick={handleSave} disabled={busy}
+                style={{background:"linear-gradient(135deg,#E05C5C,#FF8A80)",color:"#fff",border:"none",borderRadius:14,padding:"14px",fontFamily:"'Nunito'",fontWeight:900,fontSize:15,cursor:busy?"not-allowed":"pointer",opacity:busy?.6:1,boxShadow:"0 5px 18px rgba(224,92,92,.3)"}}>
+                {busy?"Salvando...":"💾 Salvar alterações"}
+              </button>
+            </div>
+          ) : (
+            <>
+              <h2 style={{fontSize:26,fontWeight:900,fontFamily:"'Nunito'",color:"#2d2d2d",letterSpacing:-.5,marginBottom:4}}>{a.nome}</h2>
+              <p style={{color:"#C5B8AE",fontFamily:"'Lato'",marginBottom:18,fontSize:13}}>Cadastrado por <strong style={{color:"#888"}}>{a.usuario_nome}</strong> · {(a.created_at||"").split("T")[0]}</p>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:9,marginBottom:16}}>
+                {[{l:"Espécie",v:a.especie},{l:"Raça",v:a.raca},{l:"Cor",v:a.cor},{l:"Porte",v:a.porte},{l:"Sexo",v:a.sexo},{l:"Local",v:`${a.bairro?a.bairro+", ":""}${a.cidade}`}].map((item,i)=>(
+                  <div key={i} style={{background:"#FAF6F2",borderRadius:11,padding:"11px 13px",border:"1px solid #F0E8E0"}}>
+                    <div style={{fontSize:9,color:"#C5B8AE",fontFamily:"'Lato'",marginBottom:2,textTransform:"uppercase",letterSpacing:.8}}>{item.l}</div>
+                    <div style={{fontSize:13,fontWeight:800,fontFamily:"'Nunito'",color:"#333"}}>{item.v||"—"}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{background:"#FAF6F2",borderRadius:13,padding:14,marginBottom:16,border:"1px solid #F0E8E0"}}>
+                <div style={{fontSize:9,color:"#C5B8AE",fontFamily:"'Lato'",marginBottom:5,textTransform:"uppercase",letterSpacing:.8}}>Descrição</div>
+                <p style={{fontFamily:"'Lato'",color:"#666",lineHeight:1.72,fontSize:14}}>{a.descricao}</p>
+              </div>
+              <MapaModal lat={a.lat} lng={a.lng} nome={a.nome} tipo={a.tipo}/>
+              <div style={{marginTop:18}}>
+                <a href={`https://wa.me/55${a.telefone?.replace(/\D/g,"")}`} target="_blank" rel="noreferrer"
+                  style={{display:"flex",alignItems:"center",justifyContent:"center",gap:9,background:`linear-gradient(${cfg.grad})`,color:"#fff",borderRadius:14,padding:"15px",fontFamily:"'Nunito'",fontWeight:800,fontSize:15,textDecoration:"none",boxShadow:`0 5px 18px ${cfg.color}38`,transition:"all .2s"}}
+                  onMouseEnter={e=>e.currentTarget.style.opacity=".88"} onMouseLeave={e=>e.currentTarget.style.opacity="1"}>
+                  📱 Entrar em contato via WhatsApp
+                </a>
+                <p style={{textAlign:"center",color:"#D0C4BC",fontSize:11,fontFamily:"'Lato'",marginTop:5}}>{a.telefone}</p>
+              </div>
+              <Share animal={a}/>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -643,7 +779,7 @@ export default function PetLynk() {
         <p style={{fontFamily:"'Lato'",color:"#D0C4BC",fontSize:10}}>Feito com ❤️ para os animais</p>
       </footer>
 
-      {sel&&<Modal a={sel} onClose={()=>setSel(null)}/>}
+      {sel&&<Modal a={sel} onClose={()=>setSel(null)} user={user} isDemo={isDemo} onUpdate={updated=>{setAnimals(p=>p.map(a=>a.id===updated.id?updated:a));setSel(updated);}}/>}
       {form&&user&&<Form user={user} onSave={a=>{setAnimals(p=>[a,...p]);setForm(false);toast_(`✅ "${a.nome}" publicado!`);}} onCancel={()=>setForm(false)} isDemo={isDemo}/>}
       {auth&&<Auth onLogin={u=>{setUser(u);setAuth(false);toast_(`👋 Bem-vindo, ${u.nome.split(" ")[0]}!`);}} onClose={()=>setAuth(false)} isDemo={isDemo} users={users} setUsers={setUsers}/>}
 
