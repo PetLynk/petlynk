@@ -647,7 +647,277 @@ function Auth({ onLogin, onClose, isDemo, users, setUsers }) {
   );
 }
 
-// ── APP ROOT ──────────────────────────────────────────────────────
+// ── ADMIN PANEL ───────────────────────────────────────────────────
+const ADMIN_EMAIL = "juliomelobr@gmail.com";
+
+function AdminPanel({ animals, users, onClose, onUpdate, onDelete, isDemo }) {
+  const [tab, setTab] = useState("animais"); // animais | usuarios | stats
+  const [editando, setEditando] = useState(null);
+  const [formEdit, setFormEdit] = useState({});
+  const [busca, setBusca] = useState("");
+  const [filtroTipo, setFiltroTipo] = useState("todos");
+  const [busy, setBusy] = useState(false);
+  const [confirmDel, setConfirmDel] = useState(null);
+
+  const animaisFiltrados = animals.filter(a => {
+    const matchTipo = filtroTipo === "todos" || a.tipo === filtroTipo;
+    const matchBusca = !busca || a.nome?.toLowerCase().includes(busca.toLowerCase()) || a.cidade?.toLowerCase().includes(busca.toLowerCase()) || a.usuario_nome?.toLowerCase().includes(busca.toLowerCase());
+    return matchTipo && matchBusca;
+  });
+
+  const handleEdit = (a) => { setEditando(a.id); setFormEdit({ ...a }); };
+
+  const handleSave = async () => {
+    setBusy(true);
+    try {
+      if (!isDemo) await api.patch("animais", editando, formEdit);
+      onUpdate(formEdit);
+      setEditando(null);
+    } catch(e) { alert("Erro: "+e.message); }
+    setBusy(false);
+  };
+
+  const handleDelete = async (id) => {
+    setBusy(true);
+    try {
+      if (!isDemo) {
+        await fetch(`${SUPABASE_URL}/rest/v1/animais?id=eq.${id}`, { method:"DELETE", headers:{ apikey:SUPABASE_KEY, Authorization:`Bearer ${SUPABASE_KEY}` } });
+      }
+      onDelete(id);
+      setConfirmDel(null);
+    } catch(e) { alert("Erro: "+e.message); }
+    setBusy(false);
+  };
+
+  const handleResolvido = async (a) => {
+    const novo = { ...a, resolvido: !a.resolvido };
+    if (!isDemo) await api.patch("animais", a.id, { resolvido: !a.resolvido });
+    onUpdate(novo);
+  };
+
+  const stats = {
+    total: animals.length,
+    perdidos: animals.filter(a=>a.tipo==="perdido").length,
+    achados: animals.filter(a=>a.tipo==="achado").length,
+    adocao: animals.filter(a=>a.tipo==="adocao").length,
+    resolvidos: animals.filter(a=>a.resolvido).length,
+    comFoto: animals.filter(a=>a.foto_url).length,
+    comMapa: animals.filter(a=>a.lat&&a.lng).length,
+    totalUsuarios: users.length,
+  };
+
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.7)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2000,padding:16,backdropFilter:"blur(4px)"}}>
+      <div style={{background:"#1a1a2e",borderRadius:24,width:"100%",maxWidth:900,maxHeight:"95vh",overflowY:"auto",boxShadow:"0 32px 100px rgba(0,0,0,.5)",border:"1px solid #2e2e4e"}}>
+
+        {/* HEADER */}
+        <div style={{padding:"20px 28px",borderBottom:"1px solid #2e2e4e",display:"flex",alignItems:"center",justifyContent:"space-between",background:"linear-gradient(135deg,#E05C5C,#FF8A80)",borderRadius:"24px 24px 0 0"}}>
+          <div style={{display:"flex",alignItems:"center",gap:12}}>
+            <span style={{fontSize:28}}>🛡️</span>
+            <div>
+              <h2 style={{fontSize:20,fontWeight:900,fontFamily:"'Nunito'",color:"#fff",letterSpacing:-.5}}>Painel Administrativo</h2>
+              <p style={{fontSize:11,color:"rgba(255,255,255,.8)",fontFamily:"'Lato'"}}>PetLynk · Acesso exclusivo</p>
+            </div>
+          </div>
+          <button onClick={onClose} style={{background:"rgba(255,255,255,.2)",border:"2px solid rgba(255,255,255,.4)",borderRadius:"50%",width:38,height:38,fontSize:18,cursor:"pointer",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700}}>✕</button>
+        </div>
+
+        {/* TABS */}
+        <div style={{display:"flex",gap:4,padding:"16px 28px 0",borderBottom:"1px solid #2e2e4e"}}>
+          {[{k:"stats",l:"📊 Dashboard"},{k:"animais",l:"🐾 Animais"},{k:"usuarios",l:"👥 Usuários"}].map(t=>(
+            <button key={t.k} onClick={()=>setTab(t.k)}
+              style={{padding:"10px 20px",background:tab===t.k?"#E05C5C":"transparent",color:tab===t.k?"#fff":"#888",border:"none",borderRadius:"10px 10px 0 0",fontFamily:"'Nunito'",fontWeight:700,fontSize:13,cursor:"pointer",transition:"all .2s"}}>
+              {t.l}
+            </button>
+          ))}
+        </div>
+
+        <div style={{padding:28}}>
+
+          {/* DASHBOARD */}
+          {tab==="stats"&&(
+            <div>
+              <h3 style={{fontSize:16,fontWeight:800,fontFamily:"'Nunito'",color:"#fff",marginBottom:20}}>Resumo geral</h3>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14,marginBottom:24}}>
+                {[
+                  {l:"Total cadastros",v:stats.total,c:"#E05C5C",i:"🐾"},
+                  {l:"Resolvidos",v:stats.resolvidos,c:"#2BAE9E",i:"✅"},
+                  {l:"Com foto",v:stats.comFoto,c:"#F0922B",i:"📸"},
+                  {l:"Usuários",v:stats.totalUsuarios,c:"#845EC2",i:"👥"},
+                ].map((s,i)=>(
+                  <div key={i} style={{background:"#12122a",borderRadius:16,padding:"18px 16px",border:`1px solid ${s.c}30`,textAlign:"center"}}>
+                    <div style={{fontSize:28,marginBottom:6}}>{s.i}</div>
+                    <div style={{fontSize:28,fontWeight:900,color:s.c,fontFamily:"'Nunito'",letterSpacing:-1}}>{s.v}</div>
+                    <div style={{fontSize:11,color:"#888",fontFamily:"'Lato'",marginTop:3}}>{s.l}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:14}}>
+                {[
+                  {l:"💔 Perdidos",v:stats.perdidos,c:"#E05C5C"},
+                  {l:"🤝 Achados",v:stats.achados,c:"#2BAE9E"},
+                  {l:"🏠 Adoção",v:stats.adocao,c:"#F0922B"},
+                ].map((s,i)=>(
+                  <div key={i} style={{background:"#12122a",borderRadius:16,padding:"16px",border:`1px solid ${s.c}30`,display:"flex",alignItems:"center",gap:14}}>
+                    <div style={{fontSize:32,fontWeight:900,color:s.c,fontFamily:"'Nunito'"}}>{s.v}</div>
+                    <div style={{fontSize:13,color:"#aaa",fontFamily:"'Lato'"}}>{s.l}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{marginTop:20,background:"#12122a",borderRadius:16,padding:20,border:"1px solid #2e2e4e"}}>
+                <p style={{fontFamily:"'Lato'",color:"#888",fontSize:13,marginBottom:8}}>📍 Com localização no mapa</p>
+                <div style={{display:"flex",alignItems:"center",gap:12}}>
+                  <div style={{flex:1,background:"#2e2e4e",borderRadius:50,height:8}}>
+                    <div style={{width:`${stats.total>0?(stats.comMapa/stats.total*100):0}%`,background:"linear-gradient(90deg,#E05C5C,#FF8A80)",borderRadius:50,height:8,transition:"width .5s"}}/>
+                  </div>
+                  <span style={{color:"#fff",fontFamily:"'Nunito'",fontWeight:700,fontSize:14}}>{stats.comMapa}/{stats.total}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ANIMAIS */}
+          {tab==="animais"&&(
+            <div>
+              <div style={{display:"flex",gap:10,marginBottom:20,flexWrap:"wrap"}}>
+                <input
+                  style={{flex:1,minWidth:200,background:"#12122a",border:"1px solid #2e2e4e",borderRadius:10,padding:"9px 14px",color:"#fff",fontFamily:"'Lato'",fontSize:13,outline:"none"}}
+                  placeholder="🔍 Buscar por nome, cidade ou usuário..."
+                  value={busca} onChange={e=>setBusca(e.target.value)}
+                />
+                <select value={filtroTipo} onChange={e=>setFiltroTipo(e.target.value)}
+                  style={{background:"#12122a",border:"1px solid #2e2e4e",borderRadius:10,padding:"9px 14px",color:"#888",fontFamily:"'Nunito'",fontWeight:700,fontSize:12,cursor:"pointer",outline:"none"}}>
+                  <option value="todos">Todos</option>
+                  <option value="perdido">💔 Perdidos</option>
+                  <option value="achado">🤝 Achados</option>
+                  <option value="adocao">🏠 Adoção</option>
+                </select>
+              </div>
+              <p style={{fontFamily:"'Lato'",color:"#666",fontSize:12,marginBottom:14}}>{animaisFiltrados.length} cadastros encontrados</p>
+
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                {animaisFiltrados.map(a=>{
+                  const cfg = TC[a.tipo];
+                  const isEdit = editando===a.id;
+                  return (
+                    <div key={a.id} style={{background:"#12122a",borderRadius:16,border:`1px solid ${isEdit?"#E05C5C":"#2e2e4e"}`,overflow:"hidden",transition:"border .2s"}}>
+                      {!isEdit ? (
+                        <div style={{display:"flex",alignItems:"center",gap:14,padding:"14px 18px"}}>
+                          <div style={{width:52,height:52,borderRadius:12,overflow:"hidden",flexShrink:0,background:`linear-gradient(${cfg.grad})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:22}}>
+                            {a.foto_url ? <img src={a.foto_url} alt={a.nome} style={{width:"100%",height:"100%",objectFit:"cover"}}/> : <span>{EM[a.especie]||"🐾"}</span>}
+                          </div>
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                              <span style={{fontSize:15,fontWeight:800,fontFamily:"'Nunito'",color:"#fff"}}>{a.nome}</span>
+                              <span style={{background:`${cfg.color}20`,color:cfg.color,borderRadius:50,padding:"2px 9px",fontSize:10,fontFamily:"'Nunito'",fontWeight:700}}>{cfg.icon} {cfg.label}</span>
+                              {a.resolvido&&<span style={{background:"rgba(43,174,158,.2)",color:"#2BAE9E",borderRadius:50,padding:"2px 9px",fontSize:10,fontFamily:"'Nunito'",fontWeight:700}}>✅ Resolvido</span>}
+                            </div>
+                            <div style={{fontSize:12,color:"#666",fontFamily:"'Lato'",marginTop:3}}>{a.especie} · {a.bairro?a.bairro+", ":""}{a.cidade} · por <strong style={{color:"#aaa"}}>{a.usuario_nome}</strong></div>
+                          </div>
+                          <div style={{display:"flex",gap:7,flexShrink:0}}>
+                            <button onClick={()=>handleResolvido(a)}
+                              style={{background:a.resolvido?"rgba(43,174,158,.2)":"rgba(43,174,158,.1)",color:"#2BAE9E",border:"1px solid rgba(43,174,158,.3)",borderRadius:8,padding:"6px 12px",fontSize:11,fontFamily:"'Nunito'",fontWeight:700,cursor:"pointer"}}>
+                              {a.resolvido?"↩ Reabrir":"✅ Resolver"}
+                            </button>
+                            <button onClick={()=>handleEdit(a)}
+                              style={{background:"rgba(224,92,92,.1)",color:"#E05C5C",border:"1px solid rgba(224,92,92,.3)",borderRadius:8,padding:"6px 12px",fontSize:11,fontFamily:"'Nunito'",fontWeight:700,cursor:"pointer"}}>
+                              ✏️ Editar
+                            </button>
+                            <button onClick={()=>setConfirmDel(a.id)}
+                              style={{background:"rgba(255,80,80,.1)",color:"#ff5050",border:"1px solid rgba(255,80,80,.3)",borderRadius:8,padding:"6px 12px",fontSize:11,fontFamily:"'Nunito'",fontWeight:700,cursor:"pointer"}}>
+                              🗑️
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{padding:18}}>
+                          <p style={{fontFamily:"'Nunito'",fontWeight:700,color:"#E05C5C",fontSize:13,marginBottom:14}}>✏️ Editando: {a.nome}</p>
+                          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+                            {[
+                              {l:"Nome",k:"nome"},{l:"Espécie",k:"especie"},{l:"Raça",k:"raca"},{l:"Cor",k:"cor"},
+                              {l:"Porte",k:"porte"},{l:"Cidade",k:"cidade"},{l:"Bairro",k:"bairro"},{l:"Telefone",k:"telefone"},
+                            ].map(c=>(
+                              <div key={c.k}>
+                                <label style={{fontSize:10,color:"#666",fontFamily:"'Lato'",display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:.8}}>{c.l}</label>
+                                <input value={formEdit[c.k]||""} onChange={e=>setFormEdit({...formEdit,[c.k]:e.target.value})}
+                                  style={{width:"100%",background:"#0d0d1a",border:"1px solid #2e2e4e",borderRadius:8,padding:"8px 12px",color:"#fff",fontFamily:"'Lato'",fontSize:13,outline:"none"}}/>
+                              </div>
+                            ))}
+                            <div style={{gridColumn:"1/-1"}}>
+                              <label style={{fontSize:10,color:"#666",fontFamily:"'Lato'",display:"block",marginBottom:4,textTransform:"uppercase",letterSpacing:.8}}>Descrição</label>
+                              <textarea value={formEdit.descricao||""} onChange={e=>setFormEdit({...formEdit,descricao:e.target.value})}
+                                style={{width:"100%",background:"#0d0d1a",border:"1px solid #2e2e4e",borderRadius:8,padding:"8px 12px",color:"#fff",fontFamily:"'Lato'",fontSize:13,outline:"none",resize:"vertical",minHeight:70}}/>
+                            </div>
+                          </div>
+                          <div style={{display:"flex",gap:10}}>
+                            <button onClick={handleSave} disabled={busy}
+                              style={{flex:1,background:"linear-gradient(135deg,#E05C5C,#FF8A80)",color:"#fff",border:"none",borderRadius:10,padding:"10px",fontFamily:"'Nunito'",fontWeight:800,fontSize:13,cursor:"pointer"}}>
+                              {busy?"Salvando...":"💾 Salvar alterações"}
+                            </button>
+                            <button onClick={()=>setEditando(null)}
+                              style={{background:"#2e2e4e",color:"#aaa",border:"none",borderRadius:10,padding:"10px 20px",fontFamily:"'Nunito'",fontWeight:700,fontSize:13,cursor:"pointer"}}>
+                              Cancelar
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* CONFIRMAR EXCLUSÃO */}
+                      {confirmDel===a.id&&(
+                        <div style={{padding:"14px 18px",borderTop:"1px solid #2e2e4e",background:"rgba(255,80,80,.05)"}}>
+                          <p style={{fontFamily:"'Lato'",color:"#ff5050",fontSize:13,marginBottom:10}}>⚠️ Confirmar exclusão de <strong>"{a.nome}"</strong>? Esta ação não pode ser desfeita.</p>
+                          <div style={{display:"flex",gap:8}}>
+                            <button onClick={()=>handleDelete(a.id)} disabled={busy}
+                              style={{background:"#ff5050",color:"#fff",border:"none",borderRadius:8,padding:"8px 18px",fontFamily:"'Nunito'",fontWeight:700,fontSize:12,cursor:"pointer"}}>
+                              {busy?"Excluindo...":"🗑️ Sim, excluir"}
+                            </button>
+                            <button onClick={()=>setConfirmDel(null)}
+                              style={{background:"#2e2e4e",color:"#aaa",border:"none",borderRadius:8,padding:"8px 18px",fontFamily:"'Nunito'",fontWeight:700,fontSize:12,cursor:"pointer"}}>
+                              Cancelar
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* USUÁRIOS */}
+          {tab==="usuarios"&&(
+            <div>
+              <p style={{fontFamily:"'Lato'",color:"#666",fontSize:12,marginBottom:16}}>{users.length} usuários cadastrados</p>
+              <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                {users.map((u,i)=>(
+                  <div key={u.id||i} style={{background:"#12122a",borderRadius:14,padding:"14px 18px",border:"1px solid #2e2e4e",display:"flex",alignItems:"center",gap:14}}>
+                    <div style={{width:42,height:42,borderRadius:"50%",background:"linear-gradient(135deg,#E05C5C,#FF8A80)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:800,color:"#fff",flexShrink:0}}>
+                      {u.nome?.charAt(0)?.toUpperCase()||"?"}
+                    </div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:14,fontWeight:800,fontFamily:"'Nunito'",color:"#fff"}}>{u.nome}</div>
+                      <div style={{fontSize:12,color:"#666",fontFamily:"'Lato'"}}>{u.email} · {u.telefone||"Sem telefone"}</div>
+                    </div>
+                    <div style={{textAlign:"right",flexShrink:0}}>
+                      <div style={{fontSize:13,fontWeight:700,color:"#E05C5C",fontFamily:"'Nunito'"}}>
+                        {animals.filter(a=>a.usuario_nome===u.nome).length} cadastros
+                      </div>
+                      {u.email===ADMIN_EMAIL&&<div style={{fontSize:10,color:"#FFB74D",fontFamily:"'Lato'",marginTop:2}}>⭐ Admin</div>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 export default function PetLynk() {
   const isDemo = SUPABASE_URL.includes("SEU_PROJETO");
   const [animals, setAnimals] = useState(DEMO);
@@ -662,6 +932,8 @@ export default function PetLynk() {
   const [auth, setAuth] = useState(false);
   const [view, setView] = useState("grid");
   const [toast, setToast] = useState(null);
+  const [adminPanel, setAdminPanel] = useState(false);
+  const isAdmin = user?.email === ADMIN_EMAIL;
 
   const toast_ = msg => { setToast(msg); setTimeout(()=>setToast(null),3500); };
 
@@ -696,6 +968,12 @@ export default function PetLynk() {
           </button>
           {user ? <>
             <span style={{fontFamily:"'Lato'",color:"#A89990",fontSize:12}}>Olá, <strong style={{color:"#555"}}>{user.nome.split(" ")[0]}</strong>!</span>
+            {isAdmin&&<button onClick={()=>setAdminPanel(true)}
+              style={{background:"linear-gradient(135deg,#1a1a2e,#2e2e4e)",color:"#FFB74D",border:"1px solid #FFB74D50",borderRadius:50,padding:"8px 16px",fontFamily:"'Nunito'",fontWeight:800,fontSize:12,cursor:"pointer",display:"flex",alignItems:"center",gap:5,transition:"all .2s"}}
+              onMouseEnter={e=>e.currentTarget.style.borderColor="#FFB74D"}
+              onMouseLeave={e=>e.currentTarget.style.borderColor="#FFB74D50"}>
+              🛡️ Admin
+            </button>}
             <button onClick={()=>setForm(true)} className="bp" style={{padding:"8px 18px",fontSize:12}}>+ Cadastrar</button>
             <button onClick={()=>setUser(null)} className="bg" style={{padding:"8px 13px",fontSize:12}}>Sair</button>
           </> : <>
@@ -796,6 +1074,7 @@ export default function PetLynk() {
       {sel&&<Modal a={sel} onClose={()=>setSel(null)} user={user} isDemo={isDemo} onUpdate={updated=>{setAnimals(p=>p.map(a=>a.id===updated.id?updated:a));setSel(updated);}}/>}
       {form&&user&&<Form user={user} onSave={a=>{setAnimals(p=>[a,...p]);setForm(false);toast_(`✅ "${a.nome}" publicado!`);}} onCancel={()=>setForm(false)} isDemo={isDemo}/>}
       {auth&&<Auth onLogin={u=>{setUser(u);setAuth(false);toast_(`👋 Bem-vindo, ${u.nome.split(" ")[0]}!`);}} onClose={()=>setAuth(false)} isDemo={isDemo} users={users} setUsers={setUsers}/>}
+      {adminPanel&&isAdmin&&<AdminPanel animals={animals} users={users} isDemo={isDemo} onClose={()=>setAdminPanel(false)} onUpdate={updated=>setAnimals(p=>p.map(a=>a.id===updated.id?updated:a))} onDelete={id=>setAnimals(p=>p.filter(a=>a.id!==id))}/>}
 
       {toast&&<div className="pop" style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",background:"#2d2d2d",color:"#fff",borderRadius:13,padding:"12px 24px",fontFamily:"'Nunito'",fontWeight:700,fontSize:13,zIndex:2000,boxShadow:"0 8px 38px rgba(0,0,0,.22)",whiteSpace:"nowrap"}}>{toast}</div>}
     </div>
