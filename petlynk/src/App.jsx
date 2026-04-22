@@ -1181,9 +1181,70 @@ export default function PetLynk() {
         </div>
       </nav>
 
-      <div style={{background:"linear-gradient(135deg,#E05C5C 0%,#FF8A80 50%,#FFB74D 100%)",padding:"48px 28px 44px",textAlign:"center",position:"relative",overflow:"hidden"}}>
+      <div style={{background:"linear-gradient(135deg,#E05C5C 0%,#FF8A80 50%,#FFB74D 100%)",padding:"48px 28px 44px",textAlign:"center",position:"relative",overflow:"hidden",minHeight:320}}>
+
+        {/* Fundo decorativo */}
         <div style={{position:"absolute",inset:0,backgroundImage:"radial-gradient(circle at 15% 60%,rgba(255,255,255,.1) 0%,transparent 45%),radial-gradient(circle at 85% 20%,rgba(255,255,255,.08) 0%,transparent 40%)"}}/>
-        <div style={{position:"relative"}}>
+
+        {/* PATINHAS DECORATIVAS */}
+        {/* Patinha grande esquerda */}
+        <svg style={{position:"absolute",left:40,top:30,opacity:.18,pointerEvents:"none",transform:"rotate(-20deg)"}} width="90" height="90" viewBox="0 0 90 90">
+          <ellipse cx="45" cy="62" rx="28" ry="22" fill="white"/>
+          <circle cx="18" cy="38" r="12" fill="white"/>
+          <circle cx="45" cy="28" r="12" fill="white"/>
+          <circle cx="72" cy="38" r="12" fill="white"/>
+        </svg>
+
+        {/* Patinha pequena esquerda */}
+        <svg style={{position:"absolute",left:15,bottom:40,opacity:.12,pointerEvents:"none",transform:"rotate(10deg)"}} width="55" height="55" viewBox="0 0 90 90">
+          <ellipse cx="45" cy="62" rx="28" ry="22" fill="white"/>
+          <circle cx="18" cy="38" r="12" fill="white"/>
+          <circle cx="45" cy="28" r="12" fill="white"/>
+          <circle cx="72" cy="38" r="12" fill="white"/>
+        </svg>
+
+        {/* Patinha media esquerda */}
+        <svg style={{position:"absolute",left:120,bottom:15,opacity:.1,pointerEvents:"none",transform:"rotate(-5deg)"}} width="40" height="40" viewBox="0 0 90 90">
+          <ellipse cx="45" cy="62" rx="28" ry="22" fill="white"/>
+          <circle cx="18" cy="38" r="12" fill="white"/>
+          <circle cx="45" cy="28" r="12" fill="white"/>
+          <circle cx="72" cy="38" r="12" fill="white"/>
+        </svg>
+
+        {/* Patinha grande direita */}
+        <svg style={{position:"absolute",right:40,bottom:25,opacity:.18,pointerEvents:"none",transform:"rotate(15deg)"}} width="90" height="90" viewBox="0 0 90 90">
+          <ellipse cx="45" cy="62" rx="28" ry="22" fill="white"/>
+          <circle cx="18" cy="38" r="12" fill="white"/>
+          <circle cx="45" cy="28" r="12" fill="white"/>
+          <circle cx="72" cy="38" r="12" fill="white"/>
+        </svg>
+
+        {/* Patinha pequena direita */}
+        <svg style={{position:"absolute",right:20,top:20,opacity:.12,pointerEvents:"none",transform:"rotate(-10deg)"}} width="50" height="50" viewBox="0 0 90 90">
+          <ellipse cx="45" cy="62" rx="28" ry="22" fill="white"/>
+          <circle cx="18" cy="38" r="12" fill="white"/>
+          <circle cx="45" cy="28" r="12" fill="white"/>
+          <circle cx="72" cy="38" r="12" fill="white"/>
+        </svg>
+
+        {/* Patinha media direita */}
+        <svg style={{position:"absolute",right:130,top:50,opacity:.1,pointerEvents:"none",transform:"rotate(25deg)"}} width="38" height="38" viewBox="0 0 90 90">
+          <ellipse cx="45" cy="62" rx="28" ry="22" fill="white"/>
+          <circle cx="18" cy="38" r="12" fill="white"/>
+          <circle cx="45" cy="28" r="12" fill="white"/>
+          <circle cx="72" cy="38" r="12" fill="white"/>
+        </svg>
+
+        {/* Patinha topo centro */}
+        <svg style={{position:"absolute",left:"48%",top:10,opacity:.08,pointerEvents:"none",transform:"rotate(5deg)"}} width="44" height="44" viewBox="0 0 90 90">
+          <ellipse cx="45" cy="62" rx="28" ry="22" fill="white"/>
+          <circle cx="18" cy="38" r="12" fill="white"/>
+          <circle cx="45" cy="28" r="12" fill="white"/>
+          <circle cx="72" cy="38" r="12" fill="white"/>
+        </svg>
+
+        {/* CONTEÚDO CENTRAL */}
+        <div style={{position:"relative",zIndex:2}}>
           <h1 style={{fontSize:"clamp(26px,5vw,50px)",fontWeight:900,color:"#fff",letterSpacing:-1.5,marginBottom:8,lineHeight:1.1,textShadow:"0 2px 18px rgba(0,0,0,.1)"}}>Conectando pets ao<br/>caminho de casa 🐾</h1>
           <p style={{color:"rgba(255,255,255,.86)",fontFamily:"'Lato'",fontSize:15,maxWidth:440,margin:"0 auto 28px",lineHeight:1.65}}>Cadastre animais perdidos, achados e para adoção. Ajude a reunir famílias em todo o Brasil.</p>
           <div style={{display:"flex",justifyContent:"center",gap:11,flexWrap:"wrap"}}>
