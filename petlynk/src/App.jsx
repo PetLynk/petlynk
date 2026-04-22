@@ -277,6 +277,7 @@ function Modal({ a, onClose, user, onUpdate, isDemo }) {
   const [preview, setPreview] = useState(a.foto_url);
   const [busy, setBusy] = useState(false);
   const [confirmFound, setConfirmFound] = useState(false);
+  const [resolvido, setResolvido] = useState(a.resolvido);
   const fileRef = useRef();
 
   const handleFoto = e => {
@@ -310,8 +311,8 @@ function Modal({ a, onClose, user, onUpdate, isDemo }) {
       const updated = { ...a, resolvido:true };
       if (!isDemo) { await api.patch("animais", a.id, { resolvido:true }); }
       onUpdate(updated);
+      setResolvido(true);
       setConfirmFound(false);
-      onClose();
     } catch(e) { alert("Erro: "+e.message); }
     setBusy(false);
   };
@@ -325,7 +326,7 @@ function Modal({ a, onClose, user, onUpdate, isDemo }) {
           {preview ? <img src={preview} alt={form.nome} style={{width:"100%",height:"100%",objectFit:"cover",position:"absolute",inset:0,borderRadius:"26px 26px 0 0"}}/> : <span style={{filter:"drop-shadow(0 8px 16px rgba(0,0,0,.22))",position:"relative"}}>{em}</span>}
           <button onClick={onClose} style={{position:"absolute",top:14,right:14,background:"rgba(255,255,255,.9)",border:"none",borderRadius:"50%",width:36,height:36,fontSize:17,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
           <div style={{position:"absolute",top:14,left:14,background:"rgba(0,0,0,.32)",backdropFilter:"blur(8px)",color:"#fff",borderRadius:50,padding:"5px 14px",fontSize:12,fontFamily:"'Nunito'",fontWeight:800}}>{cfg.icon} {cfg.label.toUpperCase()}</div>
-          {a.resolvido&&<div style={{position:"absolute",inset:0,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,color:"#fff",fontFamily:"'Nunito'",fontWeight:800,letterSpacing:.5}}>✅ ENCONTRADO / RESOLVIDO</div>}
+          {a.resolvido||resolvido ? <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,color:"#fff",fontFamily:"'Nunito'",fontWeight:800,letterSpacing:.5}}>✅ ENCONTRADO / RESOLVIDO</div> : null}
           {editMode&&(
             <button onClick={()=>fileRef.current.click()} style={{position:"absolute",bottom:14,left:"50%",transform:"translateX(-50%)",background:"rgba(255,255,255,.92)",border:"none",borderRadius:50,padding:"7px 18px",fontSize:12,fontFamily:"'Nunito'",fontWeight:700,cursor:"pointer"}}>
               📸 Trocar foto
@@ -337,7 +338,7 @@ function Modal({ a, onClose, user, onUpdate, isDemo }) {
         <div style={{padding:26}}>
 
           {/* BOTÕES DO DONO */}
-          {isOwner && !a.resolvido && (
+          {isOwner && !(a.resolvido||resolvido) && (
             <div style={{display:"flex",gap:10,marginBottom:20,flexWrap:"wrap"}}>
               <button onClick={()=>setEditMode(!editMode)}
                 style={{flex:1,background:editMode?"#F7F3EE":"#2BAE9E",color:editMode?"#888":"#fff",border:`2px solid ${editMode?"#E8DDD4":"#2BAE9E"}`,borderRadius:50,padding:"10px 16px",fontFamily:"'Nunito'",fontWeight:800,fontSize:13,cursor:"pointer",transition:"all .2s"}}>
@@ -349,7 +350,7 @@ function Modal({ a, onClose, user, onUpdate, isDemo }) {
               </button>
             </div>
           )}
-          {isOwner && a.resolvido && (
+          {isOwner && (a.resolvido||resolvido) && (
             <div style={{background:"#F0FFFD",border:"2px solid #B2EDE8",borderRadius:14,padding:"12px 16px",marginBottom:20,textAlign:"center",fontFamily:"'Nunito'",fontWeight:700,color:"#2BAE9E",fontSize:14}}>
               ✅ Este cadastro foi marcado como resolvido!
             </div>
@@ -453,13 +454,18 @@ function Card({ a, onClick }) {
   const em = EM[a.especie]||"🐾";
   return (
     <div onClick={()=>onClick(a)} className="fu"
-      style={{background:"#fff",borderRadius:20,overflow:"hidden",cursor:"pointer",boxShadow:"0 2px 18px rgba(0,0,0,.06)",border:`1px solid ${cfg.border}`,transition:"all .22s"}}
+      style={{background:"#fff",borderRadius:20,overflow:"hidden",cursor:"pointer",boxShadow:"0 2px 18px rgba(0,0,0,.06)",border:`1px solid ${a.resolvido?"#B2EDE8":cfg.border}`,transition:"all .22s",opacity:a.resolvido?.8:1}}
       onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-5px)";e.currentTarget.style.boxShadow="0 14px 38px rgba(0,0,0,.12)";}}
       onMouseLeave={e=>{e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="0 2px 18px rgba(0,0,0,.06)";}}>
-      <div style={{height:180,background:`linear-gradient(${cfg.grad})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:70,position:"relative",overflow:"hidden"}}>
+      <div style={{height:180,background:a.resolvido?"linear-gradient(135deg,#2BAE9E,#4DD0C4)":`linear-gradient(${cfg.grad})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:70,position:"relative",overflow:"hidden"}}>
         {a.foto_url ? <img src={a.foto_url} alt={a.nome} style={{width:"100%",height:"100%",objectFit:"cover",position:"absolute",inset:0}}/> : <span style={{filter:"drop-shadow(0 5px 10px rgba(0,0,0,.18))",position:"relative"}}>{em}</span>}
-        <div style={{position:"absolute",top:11,left:11,background:"rgba(0,0,0,.3)",backdropFilter:"blur(8px)",color:"#fff",borderRadius:50,padding:"4px 11px",fontSize:11,fontFamily:"'Nunito'",fontWeight:800}}>{cfg.icon} {cfg.label}</div>
-        {a.lat&&a.lng&&<div style={{position:"absolute",bottom:9,right:9,background:"rgba(255,255,255,.88)",backdropFilter:"blur(8px)",borderRadius:50,padding:"3px 9px",fontSize:10,fontFamily:"'Nunito'",fontWeight:700,color:"#555"}}>📍 No mapa</div>}
+        {/* Badge — mostra ENCONTRADO se resolvido, ou o tipo normal */}
+        {a.resolvido
+          ? <div style={{position:"absolute",top:11,left:11,background:"rgba(0,0,0,.35)",backdropFilter:"blur(8px)",color:"#fff",borderRadius:50,padding:"4px 11px",fontSize:11,fontFamily:"'Nunito'",fontWeight:800}}>✅ Encontrado</div>
+          : <div style={{position:"absolute",top:11,left:11,background:"rgba(0,0,0,.3)",backdropFilter:"blur(8px)",color:"#fff",borderRadius:50,padding:"4px 11px",fontSize:11,fontFamily:"'Nunito'",fontWeight:800}}>{cfg.icon} {cfg.label}</div>
+        }
+        {a.resolvido&&<div style={{position:"absolute",inset:0,background:"rgba(0,0,0,.25)",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{background:"rgba(43,174,158,.9)",borderRadius:16,padding:"8px 20px",fontSize:13,fontFamily:"'Nunito'",fontWeight:800,color:"#fff",textAlign:"center"}}>✅ RESOLVIDO</div></div>}
+        {!a.resolvido&&a.lat&&a.lng&&<div style={{position:"absolute",bottom:9,right:9,background:"rgba(255,255,255,.88)",backdropFilter:"blur(8px)",borderRadius:50,padding:"3px 9px",fontSize:10,fontFamily:"'Nunito'",fontWeight:700,color:"#555"}}>📍 No mapa</div>}
       </div>
       <div style={{padding:"15px 17px 17px"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:3}}>
@@ -469,9 +475,11 @@ function Card({ a, onClick }) {
         <p style={{fontSize:12,color:"#A89990",fontFamily:"'Lato'",marginBottom:7,fontWeight:700}}>{a.especie} · {a.raca} · {a.porte}</p>
         <div style={{display:"flex",gap:4,fontSize:12,color:"#C5B8AE",fontFamily:"'Lato'",marginBottom:7}}>📍 {a.bairro?a.bairro+", ":""}{a.cidade}</div>
         <p style={{fontSize:12,color:"#B0A09A",fontFamily:"'Lato'",lineHeight:1.5,display:"-webkit-box",WebkitLineClamp:2,WebkitBoxOrient:"vertical",overflow:"hidden"}}>{a.descricao}</p>
-        <div style={{marginTop:11,paddingTop:11,borderTop:`1px solid ${cfg.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div style={{marginTop:11,paddingTop:11,borderTop:`1px solid ${a.resolvido?"#B2EDE8":cfg.border}`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <span style={{fontSize:11,color:"#C5B8AE",fontFamily:"'Lato'"}}>por {a.usuario_nome}</span>
-          <span style={{background:cfg.bg,color:cfg.color,borderRadius:50,padding:"3px 11px",fontSize:11,fontFamily:"'Nunito'",fontWeight:700,border:`1px solid ${cfg.border}`}}>Ver →</span>
+          <span style={{background:a.resolvido?"#F0FFFD":cfg.bg,color:a.resolvido?"#2BAE9E":cfg.color,borderRadius:50,padding:"3px 11px",fontSize:11,fontFamily:"'Nunito'",fontWeight:700,border:`1px solid ${a.resolvido?"#B2EDE8":cfg.border}`}}>
+            {a.resolvido?"✅ Resolvido":"Ver →"}
+          </span>
         </div>
       </div>
     </div>
