@@ -647,6 +647,122 @@ function Auth({ onLogin, onClose, isDemo, users, setUsers }) {
   );
 }
 
+// ── PERFIL USUARIO ────────────────────────────────────────────────
+function PerfilModal({ user, onClose, onUpdate, isDemo, users, setUsers }) {
+  const [form, setForm] = useState({ nome:user.nome||"", telefone:user.telefone||"", email:user.email||"", senhaAtual:"", novaSenha:"", confirmarSenha:"" });
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState(null);
+  const [tab, setTab] = useState("dados"); // dados | senha
+
+  const salvarDados = async () => {
+    if (!form.nome) { setMsg({t:"erro",v:"Nome não pode estar vazio!"}); return; }
+    setBusy(true);
+    try {
+      const updated = { ...user, nome:form.nome, telefone:form.telefone };
+      if (!isDemo) { await api.patch("usuarios", user.id, { nome:form.nome, telefone:form.telefone }); }
+      else { setUsers(u=>u.map(u=>u.id===user.id?{...u,nome:form.nome,telefone:form.telefone}:u)); }
+      onUpdate(updated);
+      setMsg({t:"ok",v:"Dados atualizados com sucesso! ✅"});
+    } catch(e) { setMsg({t:"erro",v:"Erro ao salvar: "+e.message}); }
+    setBusy(false);
+  };
+
+  const salvarSenha = async () => {
+    if (!form.senhaAtual) { setMsg({t:"erro",v:"Digite a senha atual!"}); return; }
+    if (form.senhaAtual !== user.senha) { setMsg({t:"erro",v:"Senha atual incorreta!"}); return; }
+    if (!form.novaSenha || form.novaSenha.length < 6) { setMsg({t:"erro",v:"Nova senha deve ter pelo menos 6 caracteres!"}); return; }
+    if (form.novaSenha !== form.confirmarSenha) { setMsg({t:"erro",v:"As senhas não coincidem!"}); return; }
+    setBusy(true);
+    try {
+      const updated = { ...user, senha:form.novaSenha };
+      if (!isDemo) { await api.patch("usuarios", user.id, { senha:form.novaSenha }); }
+      else { setUsers(u=>u.map(u=>u.id===user.id?{...u,senha:form.novaSenha}:u)); }
+      onUpdate(updated);
+      setForm({...form, senhaAtual:"", novaSenha:"", confirmarSenha:""});
+      setMsg({t:"ok",v:"Senha alterada com sucesso! ✅"});
+    } catch(e) { setMsg({t:"erro",v:"Erro ao salvar: "+e.message}); }
+    setBusy(false);
+  };
+
+  return (
+    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:20,backdropFilter:"blur(4px)"}} onClick={onClose}>
+      <div className="pop" style={{background:"#fff",borderRadius:26,maxWidth:460,width:"100%",boxShadow:"0 32px 100px rgba(0,0,0,.3)",overflow:"hidden"}} onClick={e=>e.stopPropagation()}>
+
+        {/* HEADER */}
+        <div style={{background:"linear-gradient(135deg,#E05C5C,#FF8A80)",padding:"24px 28px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+          <div style={{display:"flex",alignItems:"center",gap:14}}>
+            <div style={{width:52,height:52,borderRadius:"50%",background:"rgba(255,255,255,.25)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:24,fontWeight:800,color:"#fff",border:"2px solid rgba(255,255,255,.4)"}}>
+              {user.nome?.charAt(0)?.toUpperCase()||"?"}
+            </div>
+            <div>
+              <h2 style={{fontSize:18,fontWeight:900,fontFamily:"'Nunito'",color:"#fff",letterSpacing:-.3}}>{user.nome}</h2>
+              <p style={{fontSize:12,color:"rgba(255,255,255,.8)",fontFamily:"'Lato'"}}>{user.email}</p>
+            </div>
+          </div>
+          <button onClick={onClose} style={{background:"rgba(255,255,255,.2)",border:"2px solid rgba(255,255,255,.4)",borderRadius:"50%",width:36,height:36,fontSize:17,cursor:"pointer",color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",fontWeight:700}}>✕</button>
+        </div>
+
+        {/* TABS */}
+        <div style={{display:"flex",borderBottom:"1px solid #F0E8E0"}}>
+          {[{k:"dados",l:"📋 Meus dados"},{k:"senha",l:"🔑 Alterar senha"}].map(t=>(
+            <button key={t.k} onClick={()=>{setTab(t.k);setMsg(null);}}
+              style={{flex:1,padding:"13px",background:tab===t.k?"#FAF6F2":"#fff",color:tab===t.k?"#E05C5C":"#A89990",border:"none",borderBottom:tab===t.k?"2px solid #E05C5C":"2px solid transparent",fontFamily:"'Nunito'",fontWeight:700,fontSize:13,cursor:"pointer",transition:"all .2s"}}>
+              {t.l}
+            </button>
+          ))}
+        </div>
+
+        <div style={{padding:28}}>
+          {msg&&<div style={{background:msg.t==="ok"?"#F0FFFD":"#FFF2F2",border:`1px solid ${msg.t==="ok"?"#B2EDE8":"#FFD5D5"}`,borderRadius:10,padding:"10px 14px",marginBottom:16,fontFamily:"'Lato'",fontSize:13,color:msg.t==="ok"?"#2BAE9E":"#E05C5C"}}>{msg.v}</div>}
+
+          {tab==="dados"&&(
+            <div style={{display:"flex",flexDirection:"column",gap:14}}>
+              <div>
+                <label style={{fontSize:11,color:"#C5B8AE",fontFamily:"'Lato'",display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:.8,fontWeight:700}}>Nome completo</label>
+                <input className="inp" value={form.nome} onChange={e=>setForm({...form,nome:e.target.value})} placeholder="Seu nome completo"/>
+              </div>
+              <div>
+                <label style={{fontSize:11,color:"#C5B8AE",fontFamily:"'Lato'",display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:.8,fontWeight:700}}>WhatsApp</label>
+                <input className="inp" value={form.telefone} onChange={e=>setForm({...form,telefone:e.target.value})} placeholder="(00) 99999-9999"/>
+              </div>
+              <div>
+                <label style={{fontSize:11,color:"#C5B8AE",fontFamily:"'Lato'",display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:.8,fontWeight:700}}>E-mail</label>
+                <input className="inp" value={form.email} disabled style={{opacity:.5,cursor:"not-allowed"}}/>
+                <p style={{fontSize:11,color:"#C5B8AE",fontFamily:"'Lato'",marginTop:4}}>O e-mail não pode ser alterado.</p>
+              </div>
+              <button onClick={salvarDados} disabled={busy}
+                style={{background:"linear-gradient(135deg,#E05C5C,#FF8A80)",color:"#fff",border:"none",borderRadius:14,padding:"14px",fontFamily:"'Nunito'",fontWeight:800,fontSize:15,cursor:busy?"not-allowed":"pointer",opacity:busy?.6:1,boxShadow:"0 4px 14px rgba(224,92,92,.3)",marginTop:4}}>
+                {busy?"Salvando...":"💾 Salvar dados"}
+              </button>
+            </div>
+          )}
+
+          {tab==="senha"&&(
+            <div style={{display:"flex",flexDirection:"column",gap:14}}>
+              <div>
+                <label style={{fontSize:11,color:"#C5B8AE",fontFamily:"'Lato'",display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:.8,fontWeight:700}}>Senha atual</label>
+                <input className="inp" type="password" value={form.senhaAtual} onChange={e=>setForm({...form,senhaAtual:e.target.value})} placeholder="Digite sua senha atual"/>
+              </div>
+              <div>
+                <label style={{fontSize:11,color:"#C5B8AE",fontFamily:"'Lato'",display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:.8,fontWeight:700}}>Nova senha</label>
+                <input className="inp" type="password" value={form.novaSenha} onChange={e=>setForm({...form,novaSenha:e.target.value})} placeholder="Mínimo 6 caracteres"/>
+              </div>
+              <div>
+                <label style={{fontSize:11,color:"#C5B8AE",fontFamily:"'Lato'",display:"block",marginBottom:5,textTransform:"uppercase",letterSpacing:.8,fontWeight:700}}>Confirmar nova senha</label>
+                <input className="inp" type="password" value={form.confirmarSenha} onChange={e=>setForm({...form,confirmarSenha:e.target.value})} placeholder="Repita a nova senha"/>
+              </div>
+              <button onClick={salvarSenha} disabled={busy}
+                style={{background:"linear-gradient(135deg,#E05C5C,#FF8A80)",color:"#fff",border:"none",borderRadius:14,padding:"14px",fontFamily:"'Nunito'",fontWeight:800,fontSize:15,cursor:busy?"not-allowed":"pointer",opacity:busy?.6:1,boxShadow:"0 4px 14px rgba(224,92,92,.3)",marginTop:4}}>
+                {busy?"Salvando...":"🔑 Alterar senha"}
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── ADMIN PANEL ───────────────────────────────────────────────────
 const ADMIN_EMAIL = "juliomelobr@gmail.com";
 
@@ -933,6 +1049,7 @@ export default function PetLynk() {
   const [view, setView] = useState("grid");
   const [toast, setToast] = useState(null);
   const [adminPanel, setAdminPanel] = useState(false);
+  const [perfilPanel, setPerfilPanel] = useState(false);
   const isAdmin = user?.email === ADMIN_EMAIL;
 
   const toast_ = msg => { setToast(msg); setTimeout(()=>setToast(null),3500); };
@@ -940,13 +1057,20 @@ export default function PetLynk() {
   useEffect(()=>{ if (!isDemo) { api.get("animais").then(d=>{ if(!d.error) setAnimals(d); setLoading(false); }); } },[]);
 
   const list = animals.filter(a=>{
-    if (tipo!=="todos"&&a.tipo!==tipo) return false;
+    if (tipo==="resolvido") { if (!a.resolvido) return false; }
+    else if (tipo!=="todos") { if (a.tipo!==tipo||a.resolvido) return false; }
+    else { /* todos — mostra tudo incluindo resolvidos */ }
     if (especie!=="todos"&&a.especie!==especie) return false;
     if (q) { const s=q.toLowerCase(); return a.nome.toLowerCase().includes(s)||a.cidade?.toLowerCase().includes(s)||a.bairro?.toLowerCase().includes(s)||a.raca?.toLowerCase().includes(s); }
     return true;
   });
 
-  const counts = { perdido:animals.filter(a=>a.tipo==="perdido"&&!a.resolvido).length, achado:animals.filter(a=>a.tipo==="achado"&&!a.resolvido).length, adocao:animals.filter(a=>a.tipo==="adocao"&&!a.resolvido).length };
+  const counts = {
+    perdido: animals.filter(a=>a.tipo==="perdido"&&!a.resolvido).length,
+    achado:  animals.filter(a=>a.tipo==="achado"&&!a.resolvido).length,
+    adocao:  animals.filter(a=>a.tipo==="adocao"&&!a.resolvido).length,
+    resolvido: animals.filter(a=>a.resolvido).length,
+  };
 
   return (
     <div style={{minHeight:"100vh",background:"#F7F3EE",fontFamily:"'Nunito',sans-serif"}}>
@@ -974,6 +1098,12 @@ export default function PetLynk() {
               onMouseLeave={e=>e.currentTarget.style.borderColor="#FFB74D50"}>
               🛡️ Admin
             </button>}
+            <button onClick={()=>setPerfilPanel(true)}
+              style={{background:"#FAF6F2",border:"2px solid #F0E8E0",borderRadius:50,padding:"8px 16px",fontFamily:"'Nunito'",fontWeight:700,fontSize:12,color:"#A89990",cursor:"pointer",transition:"all .2s"}}
+              onMouseEnter={e=>{e.currentTarget.style.borderColor="#E05C5C";e.currentTarget.style.color="#E05C5C";}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor="#F0E8E0";e.currentTarget.style.color="#A89990";}}>
+              👤 Meu perfil
+            </button>
             <button onClick={()=>setForm(true)} className="bp" style={{padding:"8px 18px",fontSize:12}}>+ Cadastrar</button>
             <button onClick={()=>setUser(null)} className="bg" style={{padding:"8px 13px",fontSize:12}}>Sair</button>
           </> : <>
@@ -989,11 +1119,11 @@ export default function PetLynk() {
           <h1 style={{fontSize:"clamp(26px,5vw,50px)",fontWeight:900,color:"#fff",letterSpacing:-1.5,marginBottom:8,lineHeight:1.1,textShadow:"0 2px 18px rgba(0,0,0,.1)"}}>Conectando pets ao<br/>caminho de casa 🐾</h1>
           <p style={{color:"rgba(255,255,255,.86)",fontFamily:"'Lato'",fontSize:15,maxWidth:440,margin:"0 auto 28px",lineHeight:1.65}}>Cadastre animais perdidos, achados e para adoção. Ajude a reunir famílias em todo o Brasil.</p>
           <div style={{display:"flex",justifyContent:"center",gap:11,flexWrap:"wrap"}}>
-            {[{t:"perdido",i:"💔",l:"Perdidos"},{t:"achado",i:"🤝",l:"Achados"},{t:"adocao",i:"🏠",l:"Adoção"}].map(x=>(
+            {[{t:"perdido",i:"💔",l:"Perdidos"},{t:"achado",i:"🤝",l:"Achados"},{t:"adocao",i:"🏠",l:"Adoção"},{t:"resolvido",i:"✅",l:"Resolvidos"}].map(x=>(
               <div key={x.t} onClick={()=>setTipo(x.t)}
-                style={{background:"rgba(255,255,255,.18)",backdropFilter:"blur(12px)",borderRadius:16,padding:"13px 22px",border:"1px solid rgba(255,255,255,.3)",cursor:"pointer",transition:"all .2s",minWidth:96}}
+                style={{background:tipo===x.t?"rgba(255,255,255,.35)":"rgba(255,255,255,.18)",backdropFilter:"blur(12px)",borderRadius:16,padding:"13px 22px",border:`1px solid ${tipo===x.t?"rgba(255,255,255,.6)":"rgba(255,255,255,.3)"}`,cursor:"pointer",transition:"all .2s",minWidth:96}}
                 onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,.27)";e.currentTarget.style.transform="translateY(-2px)";}}
-                onMouseLeave={e=>{e.currentTarget.style.background="rgba(255,255,255,.18)";e.currentTarget.style.transform="none";}}>
+                onMouseLeave={e=>{e.currentTarget.style.background=tipo===x.t?"rgba(255,255,255,.35)":"rgba(255,255,255,.18)";e.currentTarget.style.transform="none";}}>
                 <div style={{fontSize:26,fontWeight:900,color:"#fff",fontFamily:"'Nunito'"}}>{counts[x.t]}</div>
                 <div style={{fontSize:11,color:"rgba(255,255,255,.84)",fontFamily:"'Lato'"}}>{x.i} {x.l}</div>
               </div>
@@ -1008,9 +1138,9 @@ export default function PetLynk() {
           <input style={{width:"100%",background:"#FAF6F2",border:"2px solid #F0E8E0",borderRadius:50,padding:"8px 13px 8px 33px",fontFamily:"'Lato'",fontSize:12,outline:"none",color:"#333",transition:"border .2s"}} placeholder="Nome, cidade, raça..." value={q} onChange={e=>setQ(e.target.value)} onFocus={e=>e.currentTarget.style.borderColor="#E05C5C"} onBlur={e=>e.currentTarget.style.borderColor="#F0E8E0"}/>
         </div>
         <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-          {[{k:"todos",l:"Todos"},{k:"perdido",l:"💔 Perdidos"},{k:"achado",l:"🤝 Achados"},{k:"adocao",l:"🏠 Adoção"}].map(x=>(
+          {[{k:"todos",l:"Todos"},{k:"perdido",l:"💔 Perdidos"},{k:"achado",l:"🤝 Achados"},{k:"adocao",l:"🏠 Adoção"},{k:"resolvido",l:"✅ Resolvidos"}].map(x=>(
             <button key={x.k} onClick={()=>setTipo(x.k)}
-              style={{padding:"7px 13px",background:tipo===x.k?(TC[x.k]?.color||"#E05C5C"):"#FAF6F2",border:`2px solid ${tipo===x.k?(TC[x.k]?.color||"#E05C5C"):"transparent"}`,borderRadius:50,color:tipo===x.k?"#fff":"#A89990",fontFamily:"'Nunito'",fontWeight:700,fontSize:11,cursor:"pointer",transition:"all .2s",whiteSpace:"nowrap"}}>
+              style={{padding:"7px 13px",background:tipo===x.k?(x.k==="resolvido"?"#2BAE9E":TC[x.k]?.color||"#E05C5C"):"#FAF6F2",border:`2px solid ${tipo===x.k?(x.k==="resolvido"?"#2BAE9E":TC[x.k]?.color||"#E05C5C"):"transparent"}`,borderRadius:50,color:tipo===x.k?"#fff":"#A89990",fontFamily:"'Nunito'",fontWeight:700,fontSize:11,cursor:"pointer",transition:"all .2s",whiteSpace:"nowrap"}}>
               {x.l}
             </button>
           ))}
@@ -1074,6 +1204,7 @@ export default function PetLynk() {
       {sel&&<Modal a={sel} onClose={()=>setSel(null)} user={user} isDemo={isDemo} onUpdate={updated=>{setAnimals(p=>p.map(a=>a.id===updated.id?updated:a));setSel(updated);}}/>}
       {form&&user&&<Form user={user} onSave={a=>{setAnimals(p=>[a,...p]);setForm(false);toast_(`✅ "${a.nome}" publicado!`);}} onCancel={()=>setForm(false)} isDemo={isDemo}/>}
       {auth&&<Auth onLogin={u=>{setUser(u);setAuth(false);toast_(`👋 Bem-vindo, ${u.nome.split(" ")[0]}!`);}} onClose={()=>setAuth(false)} isDemo={isDemo} users={users} setUsers={setUsers}/>}
+      {perfilPanel&&user&&<PerfilModal user={user} onClose={()=>setPerfilPanel(false)} onUpdate={u=>{setUser(u);toast_("✅ Perfil atualizado!");}} isDemo={isDemo} users={users} setUsers={setUsers}/>}
       {adminPanel&&isAdmin&&<AdminPanel animals={animals} users={users} isDemo={isDemo} onClose={()=>setAdminPanel(false)} onUpdate={updated=>setAnimals(p=>p.map(a=>a.id===updated.id?updated:a))} onDelete={id=>setAnimals(p=>p.filter(a=>a.id!==id))}/>}
 
       {toast&&<div className="pop" style={{position:"fixed",bottom:24,left:"50%",transform:"translateX(-50%)",background:"#2d2d2d",color:"#fff",borderRadius:13,padding:"12px 24px",fontFamily:"'Nunito'",fontWeight:700,fontSize:13,zIndex:2000,boxShadow:"0 8px 38px rgba(0,0,0,.22)",whiteSpace:"nowrap"}}>{toast}</div>}
