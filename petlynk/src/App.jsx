@@ -333,9 +333,9 @@ function Modal({ a, onClose, user, onUpdate, isDemo }) {
       <div className="pop" style={{background:"#fff",borderRadius:26,maxWidth:550,width:"100%",maxHeight:"94vh",overflowY:"auto",boxShadow:"0 32px 100px rgba(0,0,0,.3)",position:"relative"}} onClick={e=>e.stopPropagation()}>
 
         {/* GALERIA DE FOTOS */}
-        <div style={{height:240,background:`linear-gradient(${cfg.grad})`,borderRadius:"26px 26px 0 0",display:"flex",alignItems:"center",justifyContent:"center",fontSize:86,position:"relative",overflow:"hidden"}}>
+        <div style={{height:280,background:fotoExibida?"#f5f5f5":`linear-gradient(${cfg.grad})`,borderRadius:"26px 26px 0 0",display:"flex",alignItems:"center",justifyContent:"center",fontSize:86,position:"relative",overflow:"hidden"}}>
           {fotoExibida
-            ? <img src={fotoExibida} alt={form.nome} style={{width:"100%",height:"100%",objectFit:"cover",position:"absolute",inset:0,borderRadius:"26px 26px 0 0"}}/>
+            ? <img src={fotoExibida} alt={form.nome} style={{width:"100%",height:"100%",objectFit:"contain",position:"absolute",inset:0}}/>
             : <span style={{filter:"drop-shadow(0 8px 16px rgba(0,0,0,.22))",position:"relative"}}>{em}</span>
           }
           {/* X fechar */}
@@ -494,8 +494,11 @@ function Card({ a, onClick }) {
       style={{background:"#fff",borderRadius:20,overflow:"hidden",cursor:"pointer",boxShadow:"0 2px 18px rgba(0,0,0,.06)",border:`1px solid ${a.resolvido?"#B2EDE8":cfg.border}`,transition:"all .22s",opacity:a.resolvido?.8:1}}
       onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-5px)";e.currentTarget.style.boxShadow="0 14px 38px rgba(0,0,0,.12)";}}
       onMouseLeave={e=>{e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="0 2px 18px rgba(0,0,0,.06)";}}>
-      <div style={{height:180,background:a.resolvido?"linear-gradient(135deg,#2BAE9E,#4DD0C4)":`linear-gradient(${cfg.grad})`,display:"flex",alignItems:"center",justifyContent:"center",fontSize:70,position:"relative",overflow:"hidden"}}>
-        {a.foto_url ? <img src={a.foto_url} alt={a.nome} style={{width:"100%",height:"100%",objectFit:"cover",position:"absolute",inset:0}}/> : <span style={{filter:"drop-shadow(0 5px 10px rgba(0,0,0,.18))",position:"relative"}}>{em}</span>}
+      <div style={{height:200,background:a.foto_url?"#f5f5f5":(a.resolvido?"linear-gradient(135deg,#2BAE9E,#4DD0C4)":`linear-gradient(${cfg.grad})`),display:"flex",alignItems:"center",justifyContent:"center",fontSize:70,position:"relative",overflow:"hidden"}}>
+        {a.foto_url
+          ? <img src={a.foto_url} alt={a.nome} style={{width:"100%",height:"100%",objectFit:"contain",position:"absolute",inset:0}}/>
+          : <span style={{filter:"drop-shadow(0 5px 10px rgba(0,0,0,.18))",position:"relative"}}>{em}</span>
+        }
         {/* Badge — mostra ENCONTRADO se resolvido, ou o tipo normal */}
         {a.resolvido
           ? <div style={{position:"absolute",top:11,left:11,background:"rgba(0,0,0,.35)",backdropFilter:"blur(8px)",color:"#fff",borderRadius:50,padding:"4px 11px",fontSize:11,fontFamily:"'Nunito'",fontWeight:800}}>✅ Encontrado</div>
