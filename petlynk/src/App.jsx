@@ -675,11 +675,17 @@ export default function PetLynk() {
       {isDemo&&<div style={{background:"linear-gradient(135deg,#1a1a2e,#16213e)",borderBottom:"3px solid #E05C5C",padding:"9px 24px"}}><span style={{fontFamily:"'Lato'",fontSize:11,color:"#aaa"}}>⚙️ <strong style={{color:"#FFB74D"}}>Modo Demo</strong> — Configure o Supabase para salvar dados reais. Veja as instruções no topo do arquivo.</span></div>}
 
       <nav style={{background:"#fff",borderBottom:"1px solid #F0E8E0",padding:"0 28px",display:"flex",alignItems:"center",justifyContent:"space-between",height:66,position:"sticky",top:0,zIndex:200,boxShadow:"0 1px 10px rgba(0,0,0,.04)"}}>
-        <div style={{display:"flex",alignItems:"center",gap:9}}>
+        <div style={{display:"flex",alignItems:"center",gap:9,cursor:"pointer"}} onClick={()=>{setTipo("todos");setEspecie("todos");setQ("");setView("grid");window.scrollTo({top:0,behavior:"smooth"});}}>
           <div style={{width:34,height:34,background:"linear-gradient(135deg,#E05C5C,#FF8A80)",borderRadius:10,display:"flex",alignItems:"center",justifyContent:"center",fontSize:17,boxShadow:"0 3px 9px rgba(224,92,92,.28)"}}>🐾</div>
           <div><div style={{fontSize:20,fontWeight:900,color:"#2d2d2d",letterSpacing:-.5,lineHeight:1}}>Pet<span style={{color:"#E05C5C"}}>Lynk</span></div><div style={{fontSize:9,color:"#C5B8AE",fontFamily:"'Lato'",letterSpacing:.3}}>Conectando pets ao caminho de casa</div></div>
         </div>
         <div style={{display:"flex",gap:8,alignItems:"center"}}>
+          <button onClick={()=>{setTipo("todos");setEspecie("todos");setQ("");setView("grid");window.scrollTo({top:0,behavior:"smooth"});}}
+            style={{background:"#FAF6F2",border:"2px solid #F0E8E0",borderRadius:50,padding:"8px 16px",fontFamily:"'Nunito'",fontWeight:700,fontSize:12,color:"#A89990",cursor:"pointer",transition:"all .2s",display:"flex",alignItems:"center",gap:5}}
+            onMouseEnter={e=>{e.currentTarget.style.borderColor="#E05C5C";e.currentTarget.style.color="#E05C5C";}}
+            onMouseLeave={e=>{e.currentTarget.style.borderColor="#F0E8E0";e.currentTarget.style.color="#A89990";}}>
+            🏠 Início
+          </button>
           {user ? <>
             <span style={{fontFamily:"'Lato'",color:"#A89990",fontSize:12}}>Olá, <strong style={{color:"#555"}}>{user.nome.split(" ")[0]}</strong>!</span>
             <button onClick={()=>setForm(true)} className="bp" style={{padding:"8px 18px",fontSize:12}}>+ Cadastrar</button>
