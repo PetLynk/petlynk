@@ -274,30 +274,41 @@ function Modal({ a, onClose, user, onUpdate, isDemo }) {
   const [editMode, setEditMode] = useState(false);
   const [form, setForm] = useState({ ...a });
   const [novaFoto, setNovaFoto] = useState(null);
+  const [novaFoto2, setNovaFoto2] = useState(null);
   const [preview, setPreview] = useState(a.foto_url);
+  const [preview2, setPreview2] = useState(a.foto2_url);
+  const [fotoAtiva, setFotoAtiva] = useState(0); // 0 = foto1, 1 = foto2
   const [busy, setBusy] = useState(false);
   const [confirmFound, setConfirmFound] = useState(false);
   const [resolvido, setResolvido] = useState(a.resolvido);
   const fileRef = useRef();
+  const fileRef2 = useRef();
 
-  const handleFoto = e => {
+  const fotos = [preview, preview2].filter(Boolean);
+  const fotoExibida = fotos[fotoAtiva] || null;
+
+  const handleFoto = (e, slot) => {
     const file = e.target.files[0];
     if (!file) return;
-    setNovaFoto(file);
     const r = new FileReader();
-    r.onload = ev => setPreview(ev.target.result);
+    if (slot===1) { setNovaFoto(file); r.onload=ev=>setPreview(ev.target.result); }
+    else { setNovaFoto2(file); r.onload=ev=>setPreview2(ev.target.result); }
     r.readAsDataURL(file);
   };
 
   const handleSave = async () => {
     setBusy(true);
     try {
-      let foto_url = form.foto_url;
+      let foto_url = form.foto_url, foto2_url = form.foto2_url;
       if (novaFoto) {
         if (isDemo) { foto_url = preview; }
-        else { const ext=novaFoto.name.split(".").pop(); foto_url=await api.uploadFoto(novaFoto,`${Date.now()}.${ext}`); }
+        else { const ext=novaFoto.name.split(".").pop(); foto_url=await api.uploadFoto(novaFoto,`${Date.now()}_1.${ext}`); }
       }
-      const updated = { ...form, foto_url };
+      if (novaFoto2) {
+        if (isDemo) { foto2_url = preview2; }
+        else { const ext=novaFoto2.name.split(".").pop(); foto2_url=await api.uploadFoto(novaFoto2,`${Date.now()}_2.${ext}`); }
+      }
+      const updated = { ...form, foto_url, foto2_url };
       if (!isDemo) { await api.patch("animais", a.id, updated); }
       onUpdate(updated);
       setEditMode(false);
@@ -321,18 +332,44 @@ function Modal({ a, onClose, user, onUpdate, isDemo }) {
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:20,backdropFilter:"blur(4px)"}} onClick={onClose}>
       <div className="pop" style={{background:"#fff",borderRadius:26,maxWidth:550,width:"100%",maxHeight:"94vh",overflowY:"auto",boxShadow:"0 32px 100px rgba(0,0,0,.3)",position:"relative"}} onClick={e=>e.stopPropagation()}>
 
-        {/* FOTO HEADER */}
-        <div style={{height:220,background:`linear-gradient(${cfg.grad})`,borderRadius:"26px 26px 0 0",display:"flex",alignItems:"center",justifyContent:"center",fontSize:86,position:"relative",overflow:"hidden"}}>
-          {preview ? <img src={preview} alt={form.nome} style={{width:"100%",height:"100%",objectFit:"cover",position:"absolute",inset:0,borderRadius:"26px 26px 0 0"}}/> : <span style={{filter:"drop-shadow(0 8px 16px rgba(0,0,0,.22))",position:"relative"}}>{em}</span>}
+        {/* GALERIA DE FOTOS */}
+        <div style={{height:240,background:`linear-gradient(${cfg.grad})`,borderRadius:"26px 26px 0 0",display:"flex",alignItems:"center",justifyContent:"center",fontSize:86,position:"relative",overflow:"hidden"}}>
+          {fotoExibida
+            ? <img src={fotoExibida} alt={form.nome} style={{width:"100%",height:"100%",objectFit:"cover",position:"absolute",inset:0,borderRadius:"26px 26px 0 0"}}/>
+            : <span style={{filter:"drop-shadow(0 8px 16px rgba(0,0,0,.22))",position:"relative"}}>{em}</span>
+          }
+          {/* X fechar */}
           <button onClick={onClose} style={{position:"absolute",top:10,right:10,background:"rgba(255,255,255,.95)",border:"2px solid rgba(255,255,255,.6)",borderRadius:"50%",width:38,height:38,fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",zIndex:10,boxShadow:"0 2px 12px rgba(0,0,0,.25)",fontWeight:700,color:"#333"}}>✕</button>
+          {/* badge tipo */}
           <div style={{position:"absolute",top:14,left:14,background:"rgba(0,0,0,.32)",backdropFilter:"blur(8px)",color:"#fff",borderRadius:50,padding:"5px 14px",fontSize:12,fontFamily:"'Nunito'",fontWeight:800}}>{cfg.icon} {cfg.label.toUpperCase()}</div>
-          {a.resolvido||resolvido ? <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,color:"#fff",fontFamily:"'Nunito'",fontWeight:800,letterSpacing:.5}}>✅ ENCONTRADO / RESOLVIDO</div> : null}
-          {editMode&&(
-            <button onClick={()=>fileRef.current.click()} style={{position:"absolute",bottom:14,left:"50%",transform:"translateX(-50%)",background:"rgba(255,255,255,.92)",border:"none",borderRadius:50,padding:"7px 18px",fontSize:12,fontFamily:"'Nunito'",fontWeight:700,cursor:"pointer"}}>
-              📸 Trocar foto
-            </button>
+          {/* resolvido overlay */}
+          {(a.resolvido||resolvido)&&<div style={{position:"absolute",inset:0,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,color:"#fff",fontFamily:"'Nunito'",fontWeight:800,letterSpacing:.5}}>✅ ENCONTRADO / RESOLVIDO</div>}
+          {/* miniaturas das 2 fotos */}
+          {fotos.length>1&&(
+            <div style={{position:"absolute",bottom:12,left:"50%",transform:"translateX(-50%)",display:"flex",gap:8}}>
+              {fotos.map((f,i)=>(
+                <div key={i} onClick={e=>{e.stopPropagation();setFotoAtiva(i);}}
+                  style={{width:44,height:44,borderRadius:10,overflow:"hidden",border:`3px solid ${fotoAtiva===i?"#fff":"rgba(255,255,255,.4)"}`,cursor:"pointer",transition:"all .2s",boxShadow:"0 2px 8px rgba(0,0,0,.3)"}}>
+                  <img src={f} alt={`foto ${i+1}`} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                </div>
+              ))}
+            </div>
           )}
-          <input ref={fileRef} type="file" accept="image/*" style={{display:"none"}} onChange={handleFoto}/>
+          {/* badge contador */}
+          {fotos.length>1&&(
+            <div style={{position:"absolute",top:14,right:56,background:"rgba(0,0,0,.35)",backdropFilter:"blur(8px)",color:"#fff",borderRadius:50,padding:"4px 10px",fontSize:11,fontFamily:"'Nunito'",fontWeight:700}}>
+              📸 {fotoAtiva+1}/{fotos.length}
+            </div>
+          )}
+          {/* botões trocar foto no modo edição */}
+          {editMode&&(
+            <div style={{position:"absolute",bottom:14,left:"50%",transform:"translateX(-50%)",display:"flex",gap:8}}>
+              <button onClick={()=>fileRef.current.click()} style={{background:"rgba(255,255,255,.92)",border:"none",borderRadius:50,padding:"6px 14px",fontSize:11,fontFamily:"'Nunito'",fontWeight:700,cursor:"pointer"}}>📸 Foto 1</button>
+              <button onClick={()=>fileRef2.current.click()} style={{background:"rgba(255,255,255,.92)",border:"none",borderRadius:50,padding:"6px 14px",fontSize:11,fontFamily:"'Nunito'",fontWeight:700,cursor:"pointer"}}>📸 Foto 2</button>
+            </div>
+          )}
+          <input ref={fileRef} type="file" accept="image/*" style={{display:"none"}} onChange={e=>handleFoto(e,1)}/>
+          <input ref={fileRef2} type="file" accept="image/*" style={{display:"none"}} onChange={e=>handleFoto(e,2)}/>
         </div>
 
         <div style={{padding:26}}>
@@ -464,8 +501,14 @@ function Card({ a, onClick }) {
           ? <div style={{position:"absolute",top:11,left:11,background:"rgba(0,0,0,.35)",backdropFilter:"blur(8px)",color:"#fff",borderRadius:50,padding:"4px 11px",fontSize:11,fontFamily:"'Nunito'",fontWeight:800}}>✅ Encontrado</div>
           : <div style={{position:"absolute",top:11,left:11,background:"rgba(0,0,0,.3)",backdropFilter:"blur(8px)",color:"#fff",borderRadius:50,padding:"4px 11px",fontSize:11,fontFamily:"'Nunito'",fontWeight:800}}>{cfg.icon} {cfg.label}</div>
         }
+        {/* badge 2 fotos */}
+        {a.foto_url&&a.foto2_url&&(
+          <div style={{position:"absolute",top:11,right:11,background:"rgba(0,0,0,.35)",backdropFilter:"blur(8px)",color:"#fff",borderRadius:50,padding:"4px 10px",fontSize:10,fontFamily:"'Nunito'",fontWeight:700}}>
+            📸 2 fotos
+          </div>
+        )}
         {a.resolvido&&<div style={{position:"absolute",inset:0,background:"rgba(0,0,0,.25)",display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{background:"rgba(43,174,158,.9)",borderRadius:16,padding:"8px 20px",fontSize:13,fontFamily:"'Nunito'",fontWeight:800,color:"#fff",textAlign:"center"}}>✅ RESOLVIDO</div></div>}
-        {!a.resolvido&&a.lat&&a.lng&&<div style={{position:"absolute",bottom:9,right:9,background:"rgba(255,255,255,.88)",backdropFilter:"blur(8px)",borderRadius:50,padding:"3px 9px",fontSize:10,fontFamily:"'Nunito'",fontWeight:700,color:"#555"}}>📍 No mapa</div>}
+        {!a.resolvido&&a.lat&&a.lng&&!a.foto2_url&&<div style={{position:"absolute",bottom:9,right:9,background:"rgba(255,255,255,.88)",backdropFilter:"blur(8px)",borderRadius:50,padding:"3px 9px",fontSize:10,fontFamily:"'Nunito'",fontWeight:700,color:"#555"}}>📍 No mapa</div>}
       </div>
       <div style={{padding:"15px 17px 17px"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:3}}>
@@ -490,21 +533,24 @@ function Card({ a, onClick }) {
 function Form({ user, onSave, onCancel, isDemo }) {
   const [f, setF] = useState({ tipo:"perdido", nome:"", especie:"Cachorro", raca:"", cor:"", porte:"Médio", sexo:"Indefinido", cidade:"", bairro:"", descricao:"", telefone:user.telefone||"" });
   const [foto, setFoto] = useState(null);
+  const [foto2, setFoto2] = useState(null);
   const [prev, setPrev] = useState(null);
+  const [prev2, setPrev2] = useState(null);
   const [lat, setLat] = useState(null);
   const [lng, setLng] = useState(null);
   const [busy, setBusy] = useState(false);
   const [prog, setProg] = useState("");
   const ref = useRef();
+  const ref2 = useRef();
   const cfg = TC[f.tipo];
 
-  const onFoto = e => {
+  const onFoto = (e, slot) => {
     const file = e.target.files[0];
     if (!file) return;
     if (file.size>10*1024*1024) { alert("Máx 10MB!"); return; }
-    setFoto(file);
     const r = new FileReader();
-    r.onload = ev => setPrev(ev.target.result);
+    if (slot===1) { setFoto(file); r.onload=ev=>setPrev(ev.target.result); }
+    else { setFoto2(file); r.onload=ev=>setPrev2(ev.target.result); }
     r.readAsDataURL(file);
   };
 
@@ -512,16 +558,17 @@ function Form({ user, onSave, onCancel, isDemo }) {
     if (!f.nome||!f.cidade||!f.descricao) { alert("Preencha nome, cidade e descrição!"); return; }
     setBusy(true);
     try {
-      let foto_url = null;
+      let foto_url = null, foto2_url = null;
       if (isDemo) {
-        foto_url = prev;
+        foto_url = prev; foto2_url = prev2;
         setProg("Salvando...");
         await new Promise(r=>setTimeout(r,700));
-        onSave({ ...f, id:Date.now().toString(), foto_url, lat, lng, usuario_nome:user.nome, created_at:new Date().toISOString(), resolvido:false });
+        onSave({ ...f, id:Date.now().toString(), foto_url, foto2_url, lat, lng, usuario_nome:user.nome, created_at:new Date().toISOString(), resolvido:false });
       } else {
-        if (foto) { setProg("📸 Enviando foto..."); const ext=foto.name.split(".").pop(); foto_url=await api.uploadFoto(foto,`${Date.now()}.${ext}`); }
+        if (foto) { setProg("📸 Enviando foto 1..."); const ext=foto.name.split(".").pop(); foto_url=await api.uploadFoto(foto,`${Date.now()}_1.${ext}`); }
+        if (foto2) { setProg("📸 Enviando foto 2..."); const ext=foto2.name.split(".").pop(); foto2_url=await api.uploadFoto(foto2,`${Date.now()}_2.${ext}`); }
         setProg("💾 Salvando...");
-        const res = await api.post("animais",{ ...f, foto_url, lat, lng, usuario_id:user.id, usuario_nome:user.nome, resolvido:false });
+        const res = await api.post("animais",{ ...f, foto_url, foto2_url, lat, lng, usuario_id:user.id, usuario_nome:user.nome, resolvido:false });
         if (res.error) throw new Error(res.error.message);
         onSave(res[0]);
       }
@@ -559,15 +606,33 @@ function Form({ user, onSave, onCancel, isDemo }) {
               ))}
             </div>
           </div>
-          {/* foto */}
+          {/* fotos */}
           <div>
-            <label style={{fontSize:10,color:"#C5B8AE",fontFamily:"'Lato'",display:"block",marginBottom:7,textTransform:"uppercase",letterSpacing:.8,fontWeight:700}}>Foto</label>
-            <div onClick={()=>ref.current.click()}
-              style={{height:140,background:prev?"transparent":"#FAF6F2",border:`2px dashed ${prev?cfg.color:"#E0D4C8"}`,borderRadius:14,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",overflow:"hidden",transition:"all .2s",position:"relative"}}
-              onMouseEnter={e=>{if(!prev)e.currentTarget.style.borderColor=cfg.color;}} onMouseLeave={e=>{if(!prev)e.currentTarget.style.borderColor="#E0D4C8";}}>
-              {prev ? <img src={prev} alt="p" style={{width:"100%",height:"100%",objectFit:"cover"}}/> : <div style={{textAlign:"center",color:"#D0C4BC",fontFamily:"'Lato'"}}><div style={{fontSize:32,marginBottom:7}}>📸</div><div style={{fontSize:12,fontWeight:700}}>Clique para adicionar foto</div><div style={{fontSize:10,marginTop:2}}>JPG, PNG, WEBP · Máx 10MB</div></div>}
+            <label style={{fontSize:10,color:"#C5B8AE",fontFamily:"'Lato'",display:"block",marginBottom:8,textTransform:"uppercase",letterSpacing:.8,fontWeight:700}}>Fotos do animal <span style={{color:"#D0C4BC",fontWeight:400}}>(até 2 fotos)</span></label>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+              {[{slot:1,p:prev,r:ref,label:"Foto 1"},{slot:2,p:prev2,r:ref2,label:"Foto 2 (opcional)"}].map(({slot,p,r,label})=>(
+                <div key={slot}>
+                  <div onClick={()=>r.current.click()}
+                    style={{height:120,background:p?"transparent":"#FAF6F2",border:`2px dashed ${p?cfg.color:"#E0D4C8"}`,borderRadius:14,display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",overflow:"hidden",transition:"all .2s",position:"relative"}}
+                    onMouseEnter={e=>{if(!p)e.currentTarget.style.borderColor=cfg.color;}} onMouseLeave={e=>{if(!p)e.currentTarget.style.borderColor="#E0D4C8";}}>
+                    {p
+                      ? <>
+                          <img src={p} alt={label} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+                          <div style={{position:"absolute",bottom:0,left:0,right:0,background:"rgba(0,0,0,.4)",padding:"4px 8px",textAlign:"center"}}>
+                            <span style={{fontSize:10,color:"#fff",fontFamily:"'Nunito'",fontWeight:700}}>Trocar foto</span>
+                          </div>
+                        </>
+                      : <div style={{textAlign:"center",color:"#D0C4BC",fontFamily:"'Lato'",padding:8}}>
+                          <div style={{fontSize:26,marginBottom:4}}>📸</div>
+                          <div style={{fontSize:11,fontWeight:700}}>{label}</div>
+                          <div style={{fontSize:9,marginTop:2}}>JPG, PNG · Máx 10MB</div>
+                        </div>
+                    }
+                  </div>
+                  <input ref={r} type="file" accept="image/jpeg,image/png,image/webp" style={{display:"none"}} onChange={e=>onFoto(e,slot)}/>
+                </div>
+              ))}
             </div>
-            <input ref={ref} type="file" accept="image/jpeg,image/png,image/webp" style={{display:"none"}} onChange={onFoto}/>
           </div>
           {/* campos */}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
