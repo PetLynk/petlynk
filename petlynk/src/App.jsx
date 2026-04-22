@@ -319,12 +319,12 @@ function Modal({ a, onClose, user, onUpdate, isDemo }) {
 
   return (
     <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:20,backdropFilter:"blur(4px)"}} onClick={onClose}>
-      <div className="pop" style={{background:"#fff",borderRadius:26,maxWidth:550,width:"100%",maxHeight:"94vh",overflowY:"auto",boxShadow:"0 32px 100px rgba(0,0,0,.3)"}} onClick={e=>e.stopPropagation()}>
+      <div className="pop" style={{background:"#fff",borderRadius:26,maxWidth:550,width:"100%",maxHeight:"94vh",overflowY:"auto",boxShadow:"0 32px 100px rgba(0,0,0,.3)",position:"relative"}} onClick={e=>e.stopPropagation()}>
 
         {/* FOTO HEADER */}
         <div style={{height:220,background:`linear-gradient(${cfg.grad})`,borderRadius:"26px 26px 0 0",display:"flex",alignItems:"center",justifyContent:"center",fontSize:86,position:"relative",overflow:"hidden"}}>
           {preview ? <img src={preview} alt={form.nome} style={{width:"100%",height:"100%",objectFit:"cover",position:"absolute",inset:0,borderRadius:"26px 26px 0 0"}}/> : <span style={{filter:"drop-shadow(0 8px 16px rgba(0,0,0,.22))",position:"relative"}}>{em}</span>}
-          <button onClick={onClose} style={{position:"absolute",top:14,right:14,background:"rgba(255,255,255,.9)",border:"none",borderRadius:"50%",width:36,height:36,fontSize:17,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}}>✕</button>
+          <button onClick={onClose} style={{position:"absolute",top:10,right:10,background:"rgba(255,255,255,.95)",border:"2px solid rgba(255,255,255,.6)",borderRadius:"50%",width:38,height:38,fontSize:18,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",zIndex:10,boxShadow:"0 2px 12px rgba(0,0,0,.25)",fontWeight:700,color:"#333"}}>✕</button>
           <div style={{position:"absolute",top:14,left:14,background:"rgba(0,0,0,.32)",backdropFilter:"blur(8px)",color:"#fff",borderRadius:50,padding:"5px 14px",fontSize:12,fontFamily:"'Nunito'",fontWeight:800}}>{cfg.icon} {cfg.label.toUpperCase()}</div>
           {a.resolvido||resolvido ? <div style={{position:"absolute",inset:0,background:"rgba(0,0,0,.5)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,color:"#fff",fontFamily:"'Nunito'",fontWeight:800,letterSpacing:.5}}>✅ ENCONTRADO / RESOLVIDO</div> : null}
           {editMode&&(
