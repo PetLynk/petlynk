@@ -41,8 +41,8 @@ const DEMO = [
 
 const TC = {
   perdido:{ label:"Perdido", color:"#E05C5C", bg:"#FFF2F2", border:"#FFD5D5", icon:"💔", grad:"135deg,#E05C5C,#FF8A80" },
-  achado: { label:"Achado",  color:"#2BAE9E", bg:"#F0FFFD", border:"#B2EDE8", icon:"🤝", grad:"135deg,#2BAE9E,#4DD0C4" },
-  adocao: { label:"Adoção",  color:"#F0922B", bg:"#FFF8F0", border:"#FFE0B2", icon:"🏠", grad:"135deg,#F0922B,#FFB74D" },
+  achado: { label:"Encontrei um Pet", color:"#2BAE9E", bg:"#F0FFFD", border:"#B2EDE8", icon:"🤝", grad:"135deg,#2BAE9E,#4DD0C4" },
+  adocao: { label:"Adoção Responsável", color:"#F0922B", bg:"#FFF8F0", border:"#FFE0B2", icon:"🏠", grad:"135deg,#F0922B,#FFB74D" },
 };
 const EM = { Cachorro:"🐕", Gato:"🐈", Pássaro:"🦜", Coelho:"🐇", Outro:"🐾" };
 
@@ -939,8 +939,8 @@ function AdminPanel({ animals, users, onClose, onUpdate, onDelete, isDemo }) {
               <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:14}}>
                 {[
                   {l:"💔 Perdidos",v:stats.perdidos,c:"#E05C5C"},
-                  {l:"🤝 Achados",v:stats.achados,c:"#2BAE9E"},
-                  {l:"🏠 Adoção",v:stats.adocao,c:"#F0922B"},
+                  {l:"🤝 Encontrei um Pet",v:stats.achados,c:"#2BAE9E"},
+                  {l:"🏠 Adoção Responsável",v:stats.adocao,c:"#F0922B"},
                 ].map((s,i)=>(
                   <div key={i} style={{background:"#12122a",borderRadius:16,padding:"16px",border:`1px solid ${s.c}30`,display:"flex",alignItems:"center",gap:14}}>
                     <div style={{fontSize:32,fontWeight:900,color:s.c,fontFamily:"'Nunito'"}}>{s.v}</div>
@@ -973,8 +973,8 @@ function AdminPanel({ animals, users, onClose, onUpdate, onDelete, isDemo }) {
                   style={{background:"#12122a",border:"1px solid #2e2e4e",borderRadius:10,padding:"9px 14px",color:"#888",fontFamily:"'Nunito'",fontWeight:700,fontSize:12,cursor:"pointer",outline:"none"}}>
                   <option value="todos">Todos</option>
                   <option value="perdido">💔 Perdidos</option>
-                  <option value="achado">🤝 Achados</option>
-                  <option value="adocao">🏠 Adoção</option>
+                  <option value="achado">🤝 Encontrei um Pet</option>
+                  <option value="adocao">🏠 Adoção Responsável</option>
                 </select>
               </div>
               <p style={{fontFamily:"'Lato'",color:"#666",fontSize:12,marginBottom:14}}>{animaisFiltrados.length} cadastros encontrados</p>
@@ -1245,16 +1245,16 @@ export default function PetLynk() {
 
         {/* CONTEÚDO CENTRAL */}
         <div style={{position:"relative",zIndex:2}}>
-          <h1 style={{fontSize:"clamp(26px,5vw,50px)",fontWeight:900,color:"#fff",letterSpacing:-1.5,marginBottom:8,lineHeight:1.1,textShadow:"0 2px 18px rgba(0,0,0,.1)"}}>Conectando pets ao<br/>caminho de casa 🐾</h1>
-          <p style={{color:"rgba(255,255,255,.86)",fontFamily:"'Lato'",fontSize:15,maxWidth:440,margin:"0 auto 28px",lineHeight:1.65}}>Cadastre animais perdidos, achados e para adoção. Ajude a reunir famílias em todo o Brasil.</p>
+          <h1 style={{fontSize:"clamp(32px,5vw,58px)",fontWeight:900,color:"#fff",letterSpacing:-1.5,marginBottom:8,lineHeight:1.1,textShadow:"0 2px 18px rgba(0,0,0,.1)"}}>Conectando pets ao<br/>caminho de casa 🐾</h1>
+          <p style={{color:"rgba(255,255,255,.86)",fontFamily:"'Lato'",fontSize:15,maxWidth:440,margin:"0 auto 28px",lineHeight:1.65}}>Cadastre animais perdidos, encontre pets achados e promova adoção responsável. Ajude a reunir famílias em todo o Brasil.</p>
           <div style={{display:"flex",justifyContent:"center",gap:11,flexWrap:"wrap"}}>
-            {[{t:"perdido",i:"💔",l:"Perdidos"},{t:"achado",i:"🤝",l:"Achados"},{t:"adocao",i:"🏠",l:"Adoção"},{t:"resolvido",i:"✅",l:"Resolvidos"}].map(x=>(
+            {[{t:"perdido",i:"💔",l:"Perdidos"},{t:"achado",i:"🤝",l:"Encontrei um Pet"},{t:"adocao",i:"🏠",l:"Adoção Responsável"},{t:"resolvido",i:"✅",l:"Resolvidos"}].map(x=>(
               <div key={x.t} onClick={()=>setTipo(x.t)}
-                style={{background:tipo===x.t?"rgba(255,255,255,.35)":"rgba(255,255,255,.18)",backdropFilter:"blur(12px)",borderRadius:16,padding:"13px 22px",border:`1px solid ${tipo===x.t?"rgba(255,255,255,.6)":"rgba(255,255,255,.3)"}`,cursor:"pointer",transition:"all .2s",minWidth:96}}
+                style={{background:tipo===x.t?"rgba(255,255,255,.35)":"rgba(255,255,255,.18)",backdropFilter:"blur(12px)",borderRadius:16,padding:"15px 26px",border:`1px solid ${tipo===x.t?"rgba(255,255,255,.6)":"rgba(255,255,255,.3)"}`,cursor:"pointer",transition:"all .2s",minWidth:110}}
                 onMouseEnter={e=>{e.currentTarget.style.background="rgba(255,255,255,.27)";e.currentTarget.style.transform="translateY(-2px)";}}
                 onMouseLeave={e=>{e.currentTarget.style.background=tipo===x.t?"rgba(255,255,255,.35)":"rgba(255,255,255,.18)";e.currentTarget.style.transform="none";}}>
-                <div style={{fontSize:26,fontWeight:900,color:"#fff",fontFamily:"'Nunito'"}}>{counts[x.t]}</div>
-                <div style={{fontSize:11,color:"rgba(255,255,255,.84)",fontFamily:"'Lato'"}}>{x.i} {x.l}</div>
+                <div style={{fontSize:28,fontWeight:900,color:"#fff",fontFamily:"'Nunito'"}}>{counts[x.t]}</div>
+                <div style={{fontSize:12,color:"rgba(255,255,255,.84)",fontFamily:"'Lato'",marginTop:2}}>{x.i} {x.l}</div>
               </div>
             ))}
           </div>
@@ -1267,7 +1267,7 @@ export default function PetLynk() {
           <input style={{width:"100%",background:"#FAF6F2",border:"2px solid #F0E8E0",borderRadius:50,padding:"8px 13px 8px 33px",fontFamily:"'Lato'",fontSize:12,outline:"none",color:"#333",transition:"border .2s"}} placeholder="Nome, cidade, raça..." value={q} onChange={e=>setQ(e.target.value)} onFocus={e=>e.currentTarget.style.borderColor="#E05C5C"} onBlur={e=>e.currentTarget.style.borderColor="#F0E8E0"}/>
         </div>
         <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-          {[{k:"todos",l:"Todos"},{k:"perdido",l:"💔 Perdidos"},{k:"achado",l:"🤝 Achados"},{k:"adocao",l:"🏠 Adoção"},{k:"resolvido",l:"✅ Resolvidos"}].map(x=>(
+          {[{k:"todos",l:"Todos"},{k:"perdido",l:"💔 Perdidos"},{k:"achado",l:"🤝 Encontrei um Pet"},{k:"adocao",l:"🏠 Adoção Responsável"},{k:"resolvido",l:"✅ Resolvidos"}].map(x=>(
             <button key={x.k} onClick={()=>setTipo(x.k)}
               style={{padding:"7px 13px",background:tipo===x.k?(x.k==="resolvido"?"#2BAE9E":TC[x.k]?.color||"#E05C5C"):"#FAF6F2",border:`2px solid ${tipo===x.k?(x.k==="resolvido"?"#2BAE9E":TC[x.k]?.color||"#E05C5C"):"transparent"}`,borderRadius:50,color:tipo===x.k?"#fff":"#A89990",fontFamily:"'Nunito'",fontWeight:700,fontSize:11,cursor:"pointer",transition:"all .2s",whiteSpace:"nowrap"}}>
               {x.l}
